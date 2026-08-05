@@ -1,0 +1,117 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+#include "ast.h"
+
+#define INDENT_PER_LEVEL 2
+
+#define PRINT_INDENT(indent, str)\
+	do { \
+		print_indent(indent); \
+		printf(str); \
+	} while (0)
+
+#define PRINT_FMT_INDENT(indent, fmt, ...)\
+	do { \
+		print_indent(indent); \
+		printf(fmt, __VA_ARGS__); \
+	} while (0)
+
+static void print_indent(int amount)
+{
+	for (int i = 0; i < amount; i++) {
+		printf(" ");
+	}
+}
+
+static ASTNode *alloc_node(ASTNodeType type)
+{
+	ASTNode *node = malloc(sizeof(ASTNode));
+	node->type = type;
+	return node;
+}
+
+void ast_print(ASTNode *main, int indent)
+{
+	if (main == NULL) return;
+
+	int next_indent = indent + INDENT_PER_LEVEL;
+
+	switch(main->type) {
+		case AST_PROGRAM:
+			PRINT_INDENT(indent, "Program(\n");
+			ast_print(main->node_value.program.function, next_indent);
+			PRINT_INDENT(indent, ")\n");
+			break;
+		case AST_FUNCTION:
+			PRINT_INDENT(indent, "Function(\n");
+			PRINT_FMT_INDENT(next_indent, "name=%s\n", main->node_value.function.name);
+			PRINT_INDENT(next_indent, "body=\n");
+			ast_print(main->node_value.function.body, next_indent + INDENT_PER_LEVEL);
+			PRINT_INDENT(indent, ")\n");
+			break;
+		case AST_RETURN_STATEMENT:
+			PRINT_INDENT(indent, "Return(\n");
+			ast_print(main->node_value.return_statement.expression, next_indent + INDENT_PER_LEVEL);
+			PRINT_INDENT(indent, ")\n");
+			break;
+		case AST_INT_LITERAL:
+			PRINT_FMT_INDENT(indent, "INT_LIT(%d)\n", main->node_value.int_literal.value);
+			break;
+
+		default:
+			PRINT_INDENT(indent, "UNKNOWN_TYPE");
+			break;
+	}
+}
+
+void ast_free_node(ASTNode *main)
+{
+	if (main == NULL) return;
+
+	switch(main->type) {
+		case AST_PROGRAM:
+			ast_free_node(main->node_value.program.function);
+			break;
+		case AST_FUNCTION:
+			// Since the name pointer does not belong to the node, we won't free it here
+			ast_free_node(main->node_value.function.body);
+			break;
+		case AST_RETURN_STATEMENT:
+			ast_free_node(main->node_value.return_statement.expression);
+			break;
+
+		default: break;
+	}
+
+	free(main);
+}
+
+ASTNode *ast_program(ASTNode *func)
+{
+	ASTNode *node = alloc_node(AST_PROGRAM);
+	node->node_value.program.function = func;
+	return node;
+}
+
+ASTNode *ast_function(const char *name, ASTNode *body)
+{
+	ASTNode *node = alloc_node(AST_FUNCTION);
+	node->node_value.function.name = name;
+	node->node_value.function.body = body;
+	return node;
+}
+
+ASTNode *ast_return_statement(ASTNode *exp)
+{
+	ASTNode *node = alloc_node(AST_RETURN_STATEMENT);
+	node->node_value.return_statement.expression = exp;
+	return node;
+}
+
+ASTNode *ast_int_literal(int value)
+{
+	ASTNode *node = alloc_node(AST_INT_LITERAL);
+	node->node_value.int_literal.value = value;
+	return node;
+}

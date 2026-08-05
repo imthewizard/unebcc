@@ -4,6 +4,8 @@
 
 #include "lexer.h"
 #include "token.h"
+#include "parser.h"
+#include "ast.h"
 
 void print_usage(void);
 void read_file(const char *filename, char **buffer, unsigned int *buffer_len);
@@ -26,13 +28,22 @@ int main(int argc, char **argv)
 	lexer_init(&lexer, file_buffer, file_len);
 	lexer_scan_tokens(&lexer, &token_arr);
 
-	puts("Tokens: ");
-	Token *tmp = token_arr;
-	while (tmp->type != TOKEN_EOF) {
-		print_token(tmp++);
-	}
-	print_token(tmp);
+	// puts("Tokens: ");
+	// Token *tmp = token_arr;
+	// while (tmp->type != TOKEN_EOF) {
+	// 	print_token(tmp++);
+	// }
+	// print_token(tmp);
 
+	Parser parser;
+	parser_init(&parser, token_arr);
+	parser_parse(&parser);
+
+	puts("AST: ");
+	ast_print(parser.ast, 0);
+
+
+	parser_deinit(&parser);
 	free_token_array(token_arr);
 	free(file_buffer);
 	return EXIT_SUCCESS;
