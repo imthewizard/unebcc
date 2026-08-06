@@ -2,10 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "lexer.h"
-#include "token.h"
-#include "parser.h"
-#include "ast.h"
+#include "lexer/lexer.h"
+#include "parser/parser.h"
 
 void print_usage(void);
 void read_file(const char *filename, char **buffer, unsigned int *buffer_len);

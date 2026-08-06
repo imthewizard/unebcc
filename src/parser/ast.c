@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "ast.h"
+#include "parser/ast.h"
 
 #define INDENT_PER_LEVEL 2
 

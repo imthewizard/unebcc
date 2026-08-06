@@ -3,7 +3,7 @@
 #include <assert.h>
 #include <string.h>
 
-#include "token.h"
+#include "lexer/token.h"
 
 // Turns type into a string and prints it
 static void print_token_type(TokenType type);

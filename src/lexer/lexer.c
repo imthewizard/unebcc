@@ -4,8 +4,7 @@
 #include <assert.h>
 #include <stdbool.h>
 
-#include "lexer.h"
-#include "token.h"
+#include "lexer/lexer.h"
 
 // Increments lexer->pos to skip whitespace, if needed
 static void skip_whitespace(Lexer *lexer);

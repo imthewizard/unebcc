@@ -3,9 +3,8 @@
 #include <assert.h>
 #include <stdbool.h>
 
-#include "token.h"
-#include "ast.h"
-#include "parser.h"
+#include "lexer/token.h"
+#include "parser/parser.h"
 
 static ASTNode *parse_program(Parser *p);
 static ASTNode *parse_function(Parser *p);
