@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "parser/ast.h"
 
@@ -21,6 +22,19 @@ static void print_indent(int amount)
 {
 	for (int i = 0; i < amount; i++) {
 		printf(" ");
+	}
+}
+
+static void unary_type_to_str(ASTUnaryType type, char *buf, int size)
+{
+	switch (type) {
+		case AST_UNARY_BITWISE_NOT:
+			strncpy(buf, "BITWISE NOT", size);
+			break;
+
+		case AST_UNARY_NEGATE:
+			strncpy(buf, "NEGATE", size);
+			break;
 	}
 }
 
@@ -58,6 +72,16 @@ void ast_print(ASTNode *main, int indent)
 		case AST_INT_LITERAL:
 			PRINT_FMT_INDENT(indent, "INT_LIT(%d)\n", main->node_value.int_literal.value);
 			break;
+		case AST_UNARY:{
+			char type[16];
+			unary_type_to_str(main->node_value.unary.type, type, 16);
+			PRINT_INDENT(indent, "Unary(\n");
+			PRINT_FMT_INDENT(next_indent, "type=%s\n", type);
+			PRINT_INDENT(next_indent, "expression=\n");
+			ast_print(main->node_value.unary.expression, next_indent + INDENT_PER_LEVEL);
+			PRINT_INDENT(indent, ")\n");
+			break;
+	   }
 
 		default:
 			PRINT_INDENT(indent, "UNKNOWN_TYPE");
@@ -79,6 +103,9 @@ void ast_free_node(ASTNode *main)
 			break;
 		case AST_RETURN_STATEMENT:
 			ast_free_node(main->node_value.return_statement.expression);
+			break;
+		case AST_UNARY:
+			ast_free_node(main->node_value.unary.expression);
 			break;
 
 		default: break;
@@ -114,4 +141,13 @@ ASTNode *ast_int_literal(int value)
 	ASTNode *node = alloc_node(AST_INT_LITERAL);
 	node->node_value.int_literal.value = value;
 	return node;
+}
+
+ASTNode *ast_unary(ASTUnaryType type, ASTNode *exp)
+{
+	ASTNode *node = alloc_node(AST_UNARY);
+	node->node_value.unary.type = type;
+	node->node_value.unary.expression = exp;
+	return node;
+
 }

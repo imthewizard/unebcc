@@ -29,6 +29,11 @@ static void print_token_type(TokenType type)
 
 		case(TOKEN_RETURN): printf("RETURN"); return;
 
+		case(TOKEN_TILDE): printf("TILDE"); return;
+		case(TOKEN_MINUS): printf("MINUS"); return;
+
+		case(TOKEN_DECREMENT): printf("DECREMENT"); return;
+
 		case(TOKEN_LPAREN): printf("LPAREN"); return;
 		case(TOKEN_RPAREN): printf("RPAREN"); return;
 		case(TOKEN_LBRACE): printf("LBRACE"); return;

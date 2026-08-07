@@ -56,6 +56,12 @@ static Token scan_next_token(Lexer *lexer)
 
 	// Single characters
 	switch(c) {
+		case('~'): return (Token){TOKEN_TILDE, NULL};
+		case('-'):
+		   if (peek(lexer) != '-')
+			   return (Token){TOKEN_MINUS, NULL};
+		   break;
+
 		case('('): return (Token){TOKEN_LPAREN, NULL};
 		case(')'): return (Token){TOKEN_RPAREN, NULL};
 		case('{'): return (Token){TOKEN_LBRACE, NULL};
@@ -63,6 +69,12 @@ static Token scan_next_token(Lexer *lexer)
 		case(';'): return (Token){TOKEN_SEMICOLON, NULL};
 	}
 
+	// Double characters (TODO: maybe put these inside the single chars switch)
+	switch(c) {
+		case('-'): return (Token){TOKEN_DECREMENT, NULL};
+	}
+
+	// Others
 	if (isdigit(c)) {
 		return handle_number(lexer, start_position);
 	} else if ((isalpha(c)) || c == '_') {

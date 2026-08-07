@@ -4,6 +4,7 @@
 #include <stdbool.h>
 
 #include "lexer/token.h"
+#include "parser/ast.h"
 #include "parser/parser.h"
 
 static ASTNode *parse_program(Parser *p);
@@ -18,6 +19,8 @@ static bool expect(Parser *p, TokenType token_type);
 static Token* previous(Parser *p);
 // Returns the next token
 static Token* peek(Parser *p);
+// Advances the parser
+static void advance(Parser *p);
 
 
 void parser_init(Parser *p, Token *token_array)
@@ -61,6 +64,11 @@ static Token* previous(Parser *p)
 static Token* peek(Parser *p)
 {
 	return &p->tokens[p->next_token];
+}
+
+static void advance(Parser *p)
+{
+	p->next_token++;
 }
 
 static ASTNode *parse_program(Parser *p)
@@ -108,10 +116,32 @@ static ASTNode *parse_statement(Parser *p)
 
 static ASTNode *parse_expression(Parser *p)
 {
-	if (expect(p, TOKEN_INTEGER_LITERAL) == false) return NULL;
+	const Token *next = peek(p);
 
-	Token *prev = previous(p);
-	int value = atoi(prev->literal);
+	switch(next->type) {
+		case TOKEN_INTEGER_LITERAL:
+			if (expect(p, TOKEN_INTEGER_LITERAL) == false) return NULL;
+			Token *prev = previous(p);
+			int value = atoi(prev->literal);
+			return ast_int_literal(value);
+		case TOKEN_TILDE:{
+			advance(p);
+			ASTNode *inner_exp = parse_expression(p);
+			return ast_unary(AST_UNARY_BITWISE_NOT, inner_exp);
+		}
+		case TOKEN_MINUS:{
+			advance(p);
+			ASTNode *inner_exp = parse_expression(p);
+			return ast_unary(AST_UNARY_NEGATE, inner_exp);
+		}
+		case TOKEN_LPAREN:
+			advance(p);
+			ASTNode *inner_exp = parse_expression(p);
+			if (expect(p, TOKEN_RPAREN) == false) return NULL;
+			return inner_exp;
 
-	return ast_int_literal(value);
+		default:
+			fprintf(stderr, "Malformed expression\n");
+			return NULL;
+	}
 }

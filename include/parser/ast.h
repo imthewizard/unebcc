@@ -6,7 +6,13 @@ typedef	enum ASTNodeType {
 	AST_FUNCTION,
 	AST_RETURN_STATEMENT,
 	AST_INT_LITERAL,
+	AST_UNARY,
 }ASTNodeType;
+
+typedef enum ASTUnaryType {
+	AST_UNARY_BITWISE_NOT,
+	AST_UNARY_NEGATE,
+}ASTUnaryType;
 
 typedef struct ASTNode ASTNode;
 struct ASTNode {
@@ -29,6 +35,11 @@ struct ASTNode {
 		struct {
 			int value;
 		} int_literal;
+
+		struct {
+			ASTUnaryType type;
+			ASTNode *expression;
+		} unary;
 	} node_value;
 };
 
@@ -46,5 +57,7 @@ ASTNode *ast_function(const char *name, ASTNode *body);
 ASTNode *ast_return_statement(ASTNode *exp);
 // Allocates a new int literal node
 ASTNode *ast_int_literal(int value);
+// Allocates a new unary node
+ASTNode *ast_unary(ASTUnaryType type, ASTNode *exp);
 
 #endif // UNEBCC_AST_H
