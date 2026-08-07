@@ -5,43 +5,37 @@
 
 #include "lexer/token.h"
 
-// Turns type into a string and prints it
-static void print_token_type(TokenType type);
+static const char* token_type_str[] = {
+	[TOKEN_IDENTIFIER] = "IDENTIFIER",
+	[TOKEN_INTEGER_LITERAL] = "INTEGER_LITERAL",
+
+	[TOKEN_VOID] = "VOID",
+	[TOKEN_INT] = "INT",
+
+	[TOKEN_RETURN] = "RETURN",
+
+	[TOKEN_TILDE] = "TILDE",
+	[TOKEN_MINUS] = "MINUS",
+
+	[TOKEN_DECREMENT] = "DECREMENT",
+
+	[TOKEN_LPAREN] = "LPAREN",
+	[TOKEN_RPAREN] = "RPAREN",
+	[TOKEN_LBRACE] = "LBRACE",
+	[TOKEN_RBRACE] = "RBRACE",
+	[TOKEN_SEMICOLON] = "SEMICOLON",
+
+	[TOKEN_EOF] = "EOF",
+	[TOKEN_INVALID] = "INVALID",
+};
 
 void print_token(Token *token)
 {
-	print_token_type(token->type);
+	printf("%s", token_type_str[token->type]);
 	if (token->literal == NULL) {
 		printf(" - (null)\n");
 	} else {
 		printf(" - literal: %s\n", token->literal);
-	}
-}
-
-static void print_token_type(TokenType type)
-{
-	switch(type){
-		case(TOKEN_IDENTIFIER): printf("IDENTIFIER"); return;
-		case(TOKEN_INTEGER_LITERAL): printf("INTEGER_LITERAL"); return;
-
-		case(TOKEN_VOID): printf("VOID"); return;
-		case(TOKEN_INT): printf("INT"); return;
-
-		case(TOKEN_RETURN): printf("RETURN"); return;
-
-		case(TOKEN_TILDE): printf("TILDE"); return;
-		case(TOKEN_MINUS): printf("MINUS"); return;
-
-		case(TOKEN_DECREMENT): printf("DECREMENT"); return;
-
-		case(TOKEN_LPAREN): printf("LPAREN"); return;
-		case(TOKEN_RPAREN): printf("RPAREN"); return;
-		case(TOKEN_LBRACE): printf("LBRACE"); return;
-		case(TOKEN_RBRACE): printf("RBRACE"); return;
-		case(TOKEN_SEMICOLON): printf("SEMICOLON"); return;
-
-		case(TOKEN_EOF): printf("EOF"); return;
-		case(TOKEN_INVALID): printf("INVALID"); return;
 	}
 }
 

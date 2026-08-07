@@ -25,18 +25,10 @@ static void print_indent(int amount)
 	}
 }
 
-static void unary_type_to_str(ASTUnaryType type, char *buf, int size)
-{
-	switch (type) {
-		case AST_UNARY_BITWISE_NOT:
-			strncpy(buf, "BITWISE NOT", size);
-			break;
-
-		case AST_UNARY_NEGATE:
-			strncpy(buf, "NEGATE", size);
-			break;
-	}
-}
+static const char *unary_type_str[] = {
+	[AST_UNARY_BITWISE_NOT] = "BITWISE NOT",
+	[AST_UNARY_NEGATE] = "NEGATE",
+};
 
 static ASTNode *alloc_node(ASTNodeType type)
 {
@@ -73,10 +65,9 @@ void ast_print(ASTNode *main, int indent)
 			PRINT_FMT_INDENT(indent, "INT_LIT(%d)\n", main->node_value.int_literal.value);
 			break;
 		case AST_UNARY:{
-			char type[16];
-			unary_type_to_str(main->node_value.unary.type, type, 16);
+			const ASTUnaryType type = main->node_value.unary.type;
 			PRINT_INDENT(indent, "Unary(\n");
-			PRINT_FMT_INDENT(next_indent, "type=%s\n", type);
+			PRINT_FMT_INDENT(next_indent, "type=%s\n", unary_type_str[type]);
 			PRINT_INDENT(next_indent, "expression=\n");
 			ast_print(main->node_value.unary.expression, next_indent + INDENT_PER_LEVEL);
 			PRINT_INDENT(indent, ")\n");
