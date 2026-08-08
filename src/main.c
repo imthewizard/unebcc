@@ -4,6 +4,7 @@
 
 #include "lexer/lexer.h"
 #include "parser/parser.h"
+#include "ir/ir.h"
 
 void print_usage(void);
 void read_file(const char *filename, char **buffer, unsigned int *buffer_len);
@@ -40,7 +41,14 @@ int main(int argc, char **argv)
 	puts("AST: ");
 	ast_print(parser.ast, 0);
 
+	IR ir;
+	ir_init(&ir);
+	ir_generate(&ir, parser.ast);
 
+	puts("IR: ");
+	ir_print(&ir);
+
+	ir_deinit(&ir);
 	parser_deinit(&parser);
 	free_token_array(token_arr);
 	free(file_buffer);
