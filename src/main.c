@@ -2,51 +2,68 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "args.h"
 #include "lexer/lexer.h"
 #include "parser/parser.h"
 #include "ir/ir.h"
 
-void print_usage(void);
+void print_usage(const char *cmd);
 void read_file(const char *filename, char **buffer, unsigned int *buffer_len);
 
 int main(int argc, char **argv)
 {
 	if (argc < 2){
-		print_usage();
+		print_usage(argv[0]);
 		return EXIT_FAILURE;
 	}
 
-	const char *filename = argv[1];
+	ArgsContext ctx = args_parse(argc, argv, 1);
+
+	if (ctx.filename == NULL) {
+		puts("Missing file");
+		return EXIT_FAILURE;
+	}
 
 	char *file_buffer = NULL;
 	unsigned int file_len;
-	read_file(filename, &file_buffer, &file_len);
+	read_file(ctx.filename, &file_buffer, &file_len);
+
+	if (file_buffer == NULL) {
+		printf("File \"%s\" does not exist", ctx.filename);
+		return EXIT_FAILURE;
+	}
 
 	Token *token_arr = create_token_array();
 	Lexer lexer;
 	lexer_init(&lexer, file_buffer, file_len);
 	lexer_scan_tokens(&lexer, &token_arr);
 
-	// puts("Tokens: ");
-	// Token *tmp = token_arr;
-	// while (tmp->type != TOKEN_EOF) {
-	// 	print_token(tmp++);
-	// }
-	// print_token(tmp);
+	if (ctx.print_tokens) {
+		puts("\nTokens: ");
+		Token *tmp = token_arr;
+		while (tmp->type != TOKEN_EOF) {
+			print_token(tmp++);
+		}
+		print_token(tmp);
+	}
 
 	Parser parser;
 	parser_init(&parser, token_arr);
 	parser_parse(&parser);
 
-	puts("AST: ");
-	ast_print(parser.ast, 0);
+	if (ctx.print_ast) {
+		puts("\nAST: ");
+		ast_print(parser.ast, 0);
+	}
 
 	IR ir;
 	ir_init(&ir);
 	ir_generate(&ir, parser.ast);
 
-	puts("IR: ");
-	ir_print(&ir);
+	if (ctx.print_ir) {
+		puts("\nIR: ");
+		ir_print(&ir);
+	}
 
 	ir_deinit(&ir);
 	parser_deinit(&parser);
@@ -55,9 +72,13 @@ int main(int argc, char **argv)
 	return EXIT_SUCCESS;
 }
 
-void print_usage(void)
+void print_usage(const char *cmd)
 {
-	puts("TODO: usage");
+	printf("%s [FILE] [FLAGS]\n", cmd);
+	puts("Flags:");
+	puts("--token: prints the lexed tokens");
+	puts("--ast: prints the AST");
+	puts("--ir: prints the IR");
 }
 
 void read_file(const char *filename, char **buffer, unsigned int *buffer_len)
