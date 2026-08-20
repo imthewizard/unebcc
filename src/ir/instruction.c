@@ -10,10 +10,10 @@ void instruction_print(const IRInstruction *inst)
 			printf("return tmp%d", inst->src1.value);
 			break;
 		case IR_BITWISE_NOT:
-			printf("tmp%d = ~ tmp%d", inst->dest_id, inst->src1.value);
+			printf("tmp%d = not tmp%d", inst->dest_id, inst->src1.value);
 			break;
 		case IR_NEGATE:
-			printf("tmp%d = - tmp%d", inst->dest_id, inst->src1.value);
+			printf("tmp%d = negate tmp%d", inst->dest_id, inst->src1.value);
 			break;
 		case IR_STORE:
 			printf("tmp%d = const %d", inst->dest_id, inst->src1.value);
