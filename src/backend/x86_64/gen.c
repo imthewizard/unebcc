@@ -3,6 +3,7 @@
 
 #include "backend/x86_64/x86_64.h"
 #include "backend/x86_64/program.h"
+#include "backend/x86_64/regalloc.h"
 #include "ir/ir.h"
 
 static x86_64Function create_fn(const IRFunction *fn);
@@ -18,6 +19,8 @@ void x86_64_create_prog(const IR *ir, x86_64Program *prog)
 		x86_64Function fn = create_fn(&ir->functions[i]);
 		x86_64_program_push_fn(prog, &fn);
 	}
+
+	x86_64_regalloc(prog);
 }
 
 static x86_64Function create_fn(const IRFunction *fn)
