@@ -6,6 +6,7 @@
 #include "lexer/lexer.h"
 #include "parser/parser.h"
 #include "ir/ir.h"
+#include "backend/x86_64/gen.h"
 
 void print_usage(const char *cmd);
 void read_file(const char *filename, char **buffer, unsigned int *buffer_len);
@@ -65,6 +66,12 @@ int main(int argc, char **argv)
 		ir_print(&ir);
 	}
 
+	x86_64Program prog = x86_64_program_init();
+	x86_64_create_prog(&ir, &prog);
+	x86_64_program_print(&prog);
+
+
+	x86_64_program_deinit(&prog);
 	ir_deinit(&ir);
 	parser_deinit(&parser);
 	free_token_array(token_arr);
