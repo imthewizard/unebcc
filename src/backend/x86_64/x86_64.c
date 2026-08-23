@@ -36,12 +36,12 @@ static void print_operand(const x86_64Operand *operand)
 
 		default: assert(0);
 	}
-	printf("}\n");
+	printf("}");
 }
 
 void x86_64_print_inst(const x86_64Instruction *inst)
 {
-	printf("%s:\n", mnemonic_to_str[inst->mnemonic]);
+	printf("%s:\t", mnemonic_to_str[inst->mnemonic]);
 
 	switch (inst->mnemonic) {
 		case X86_64_MOV:
@@ -57,10 +57,12 @@ void x86_64_print_inst(const x86_64Instruction *inst)
 			break;
 
 		case X86_64_ALLOCATE_STACK:
-			printf("{ALLOC %d}\n", inst->instruction.stack.value);
+			printf("{ALLOC %d}", inst->instruction.stack.value);
 			break;
 		case X86_64_DEALLOCATE_STACK: break;
 
 		default: assert(0);
 	}
+
+	printf("\n");
 }
