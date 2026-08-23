@@ -19,5 +19,8 @@ void function_init(IRFunction *fn)
 void function_deinit(IRFunction *fn)
 {
 	if (fn->basic_blocks == NULL) return;
+	for (int i = 0; i < array_length(fn->basic_blocks); i++) {
+		basic_block_deinit(&fn->basic_blocks[i]);
+	}
 	array_free(fn->basic_blocks);
 }

@@ -26,6 +26,9 @@ void ir_init(IR *ir)
 void ir_deinit(IR *ir)
 {
 	if (ir->functions == NULL) return;
+	for (int i = 0; i < array_length(ir->functions); i++) {
+		function_deinit(&ir->functions[i]);
+	}
 	array_free(ir->functions);
 }
 

@@ -74,6 +74,10 @@ int main(int argc, char **argv)
 	x86_64_program_deinit(&prog);
 	ir_deinit(&ir);
 	parser_deinit(&parser);
+	for (int i = 0; i < array_length(token_arr); i++) {
+		if (token_arr[i].literal != NULL)
+			free(token_arr[i].literal);
+	}
 	array_free(token_arr);
 	free(file_buffer);
 	return EXIT_SUCCESS;
