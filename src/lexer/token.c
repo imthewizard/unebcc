@@ -1,5 +1,4 @@
 #include <stdio.h>
-#include <stdlib.h>
 #include <assert.h>
 #include <string.h>
 
@@ -37,36 +36,6 @@ void print_token(Token *token)
 	} else {
 		printf(" - literal: %s\n", token->literal);
 	}
-}
-
-Token *create_token_array(void)
-{
-	return NULL;
-}
-
-void free_token_array(Token *arr)
-{
-	Token *tmp = arr;
-	while (tmp->type != TOKEN_EOF) {
-		if (tmp->literal != NULL) {
-			free(tmp->literal);
-		}
-		tmp++;
-	}
-	free(arr);
-}
-
-void push_token_array(Token **arr, int arr_size, const Token *value)
-{
-	// Reallocs by size + 1 every push, not super optimized but it's simple
-	Token *tmp = realloc(*arr, sizeof(Token) * (arr_size + 1));
-	if (tmp == NULL) {
-		puts("push_token_array: realloc fail");
-		exit(EXIT_FAILURE);
-	}
-
-	*arr = tmp;
-	(*arr)[arr_size] = *value;
 }
 
 TokenType keyword_to_tokentype(const char *keyword)

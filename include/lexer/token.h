@@ -37,14 +37,6 @@ typedef struct Token{
 
 // Prints the token's type and its literal value
 void print_token(Token *token);
-
-// Creates an array of tokens. Use push_token_array to insert values and free_token_array to deallocate
-Token *create_token_array(void);
-// Deallocates an array of tokens
-void free_token_array(Token *arr);
-// Reallocs an array of tokens and inserts a token
-void push_token_array(Token **arr, int arr_size, const Token *value);
-
 // Converts a null-terminated string keyword to a token type. Returns TOKEN_INVALID if no token for that keyword exists
 TokenType keyword_to_tokentype(const char *keyword);
 

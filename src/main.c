@@ -8,6 +8,8 @@
 #include "ir/ir.h"
 #include "backend/x86_64/gen.h"
 
+#include "utils/array.h"
+
 void print_usage(const char *cmd);
 void read_file(const char *filename, char **buffer, unsigned int *buffer_len);
 
@@ -34,18 +36,16 @@ int main(int argc, char **argv)
 		return EXIT_FAILURE;
 	}
 
-	Token *token_arr = create_token_array();
+	Token *token_arr = array_create(token_arr, 1);
 	Lexer lexer;
 	lexer_init(&lexer, file_buffer, file_len);
 	lexer_scan_tokens(&lexer, &token_arr);
 
 	if (ctx.print_tokens) {
 		puts("\nTokens: ");
-		Token *tmp = token_arr;
-		while (tmp->type != TOKEN_EOF) {
-			print_token(tmp++);
+		for (int i = 0; i < array_length(token_arr); i++) {
+			print_token(&token_arr[i]);
 		}
-		print_token(tmp);
 	}
 
 	Parser parser;
@@ -74,7 +74,7 @@ int main(int argc, char **argv)
 	x86_64_program_deinit(&prog);
 	ir_deinit(&ir);
 	parser_deinit(&parser);
-	free_token_array(token_arr);
+	array_free(token_arr);
 	free(file_buffer);
 	return EXIT_SUCCESS;
 }

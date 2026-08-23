@@ -5,6 +5,7 @@
 #include <stdbool.h>
 
 #include "lexer/lexer.h"
+#include "utils/array.h"
 
 // Increments lexer->pos to skip whitespace, if needed
 static void skip_whitespace(Lexer *lexer);
@@ -29,16 +30,16 @@ void lexer_init(Lexer *lexer, const char *buffer, unsigned int buffer_len)
 	lexer->next_pos = 0;
 }
 
+#include <stdio.h>
 void lexer_scan_tokens(Lexer *lexer, Token **token_array)
 {
 	assert(lexer->buffer != NULL);
-	assert(*token_array == NULL);
+	assert(*token_array != NULL);
 
-	int array_size = 0;
 	Token token;
 	do {
 		token = scan_next_token(lexer);
-		push_token_array(token_array, array_size++, &token);
+		array_push(*token_array, token);
 	} while (token.type != TOKEN_EOF);
 }
 
