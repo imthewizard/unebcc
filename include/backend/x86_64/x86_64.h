@@ -55,5 +55,7 @@ typedef struct x86_64Instruction {
 
 // Prints the instruction
 void x86_64_print_inst(const x86_64Instruction *inst);
+// Converts a register enum value to a string
+const char *x86_64_reg_to_str(x86_64Registers reg);
 
 #endif // UNEBCC_X86_64_H

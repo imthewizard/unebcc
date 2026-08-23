@@ -4,8 +4,8 @@
 #include "backend/x86_64/x86_64.h"
 
 static const char *reg_to_str[] = {
-	[X86_64_AX] = "AX",
-	[X86_64_R10] = "R10",
+	[X86_64_AX] = "eax",
+	[X86_64_R10] = "r10d",
 };
 
 static const char *mnemonic_to_str[] = {
@@ -65,4 +65,9 @@ void x86_64_print_inst(const x86_64Instruction *inst)
 	}
 
 	printf("\n");
+}
+
+const char *x86_64_reg_to_str(x86_64Registers reg)
+{
+	return reg_to_str[reg];
 }

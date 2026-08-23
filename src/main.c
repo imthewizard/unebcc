@@ -7,6 +7,7 @@
 #include "parser/parser.h"
 #include "ir/ir.h"
 #include "backend/x86_64/gen.h"
+#include "backend/x86_64/emitter.h"
 
 #include "utils/array.h"
 
@@ -68,8 +69,12 @@ int main(int argc, char **argv)
 
 	x86_64Program prog = x86_64_program_init();
 	x86_64_create_prog(&ir, &prog);
-	x86_64_program_print(&prog);
 
+	// puts("\nProgram: ");
+	// x86_64_program_print(&prog);
+
+	puts("\nASM: ");
+	x86_64_emit(&prog);
 
 	x86_64_program_deinit(&prog);
 	ir_deinit(&ir);
