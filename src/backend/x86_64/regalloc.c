@@ -2,9 +2,12 @@
 
 #include "backend/x86_64/program.h"
 #include "backend/x86_64/regalloc.h"
+#include "backend/x86_64/x86_64.h"
 #include "utils/array.h"
 
 static void regalloc(x86_64Instruction *inst, int *offset);
+static void stackalloc(x86_64Function *fn, int alloc_amount);
+static void fix_invalid_movs(x86_64Function *fn);
 
 void x86_64_regalloc(x86_64Program *prog)
 {
@@ -17,6 +20,9 @@ void x86_64_regalloc(x86_64Program *prog)
 
 			regalloc(inst, &next_stack_offset);
 		}
+
+		stackalloc(fn, next_stack_offset + 4);
+		fix_invalid_movs(fn);
 	}
 }
 
@@ -75,5 +81,54 @@ static void regalloc(x86_64Instruction *inst, int *next_offset)
 			return;
 
 		default: assert(0);
+	}
+}
+
+static void stackalloc(x86_64Function *fn, int alloc_amount)
+{
+	if (alloc_amount == 0) return;
+
+	// abs
+	assert(alloc_amount < 0);
+	alloc_amount = -alloc_amount;
+
+	x86_64Instruction sa = {
+		.mnemonic = X86_64_ALLOCATE_STACK,
+		.instruction.stack.value = alloc_amount,
+	};
+	x86_64Instruction sd = {
+		.mnemonic = X86_64_DEALLOCATE_STACK,
+	};
+
+	array_insert(fn->instructions, sa, 0);
+	array_insert(fn->instructions, sd, array_length(fn->instructions) - 1);
+}
+
+static void fix_invalid_movs(x86_64Function *fn)
+{
+	for (int i = 0; i < array_length(fn->instructions); i++) {
+		x86_64Instruction *inst = &fn->instructions[i];
+
+		if (inst->mnemonic == X86_64_MOV) {
+			x86_64Operand *dst = &inst->instruction.mov.dst;
+			x86_64Operand *src = &inst->instruction.mov.src;
+
+			// is this a mov [STACK2], [STACK1]?
+			if (dst->type == X86_64_STACK && src->type == X86_64_STACK) {
+				int old_dst_stack = dst->value.stack;
+
+				// Change this instruction to mov r10, [STACK1]
+				dst->type = X86_64_REGISTER;
+				dst->value.reg = X86_64_R10;
+
+				// Place a mov [STACK2], r10
+				x86_64Instruction new = {
+					.mnemonic = X86_64_MOV,
+					.instruction.mov.dst = {X86_64_STACK, .value.stack = old_dst_stack},
+					.instruction.mov.src = {X86_64_REGISTER, .value.reg = X86_64_R10},
+				};
+				array_insert(fn->instructions, new, i + 1);
+			}
+		}
 	}
 }

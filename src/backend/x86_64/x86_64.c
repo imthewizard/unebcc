@@ -13,6 +13,9 @@ static const char *mnemonic_to_str[] = {
 	[X86_64_RET] = "RET",
 	[X86_64_NEG] = "NEG",
 	[X86_64_NOT] = "NOT",
+
+	[X86_64_ALLOCATE_STACK] = "ALLOCATE_STACK",
+	[X86_64_DEALLOCATE_STACK] = "DEALLOCATE_STACK",
 };
 
 static const char *optype_to_str[] = {
@@ -52,6 +55,11 @@ void x86_64_print_inst(const x86_64Instruction *inst)
 		case X86_64_NOT:
 			print_operand(&inst->instruction.unary.src);
 			break;
+
+		case X86_64_ALLOCATE_STACK:
+			printf("{ALLOC %d}\n", inst->instruction.stack.value);
+			break;
+		case X86_64_DEALLOCATE_STACK: break;
 
 		default: assert(0);
 	}

@@ -11,6 +11,10 @@ typedef enum x86_64Mnemonics {
 	X86_64_RET,
 	X86_64_NEG,
 	X86_64_NOT,
+
+	// Pseudo
+	X86_64_ALLOCATE_STACK,
+	X86_64_DEALLOCATE_STACK,
 }x86_64Mnemonics;
 
 typedef enum x86_64OperandType {
