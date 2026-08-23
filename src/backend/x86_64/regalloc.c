@@ -2,16 +2,17 @@
 
 #include "backend/x86_64/program.h"
 #include "backend/x86_64/regalloc.h"
+#include "utils/array.h"
 
 static void regalloc(x86_64Instruction *inst, int *offset);
 
 void x86_64_regalloc(x86_64Program *prog)
 {
-	for (int i = 0; i < prog->function_amount; i++) {
+	for (int i = 0; i < array_length(prog->functions); i++) {
 		x86_64Function *fn = &prog->functions[i];
 		int next_stack_offset = -4;
 
-		for (int j = 0; j < fn->instruction_amount; j++) {
+		for (int j = 0; j < array_length(fn->instructions); j++) {
 			x86_64Instruction *inst = &fn->instructions[j];
 
 			regalloc(inst, &next_stack_offset);
@@ -21,6 +22,7 @@ void x86_64_regalloc(x86_64Program *prog)
 
 static void regalloc(x86_64Instruction *inst, int *next_offset)
 {
+	// TODO: should probably be a hashmap, but works for now
 	static int pseudo_offset_map[1024] = {0};
 
 	switch (inst->mnemonic) {

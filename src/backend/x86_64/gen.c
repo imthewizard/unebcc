@@ -1,4 +1,3 @@
-#include <stdlib.h>
 #include <assert.h>
 
 #include "backend/x86_64/x86_64.h"
@@ -18,7 +17,7 @@ void x86_64_create_prog(const IR *ir, x86_64Program *prog)
 
 	for (int i = 0; i < array_length(ir->functions); i++) {
 		x86_64Function fn = create_fn(&ir->functions[i]);
-		x86_64_program_push_fn(prog, &fn);
+		array_push(prog->functions, fn);
 	}
 
 	x86_64_regalloc(prog);
@@ -53,8 +52,8 @@ static void create_inst(x86_64Function *fn, const IRInstruction *inst)
 			x86_64Instruction ret = {
 				.mnemonic = X86_64_RET
 			};
-			x86_64_function_push_inst(fn, &mov);
-			x86_64_function_push_inst(fn, &ret);
+			array_push(fn->instructions, mov);
+			array_push(fn->instructions, ret);
 			return;
 		}
 		case IR_BITWISE_NOT: {
@@ -68,8 +67,8 @@ static void create_inst(x86_64Function *fn, const IRInstruction *inst)
 				.mnemonic = X86_64_NOT,
 				.instruction.unary.src = {X86_64_PSEUDO, .value.pseudo = inst->dest_id},
 			};
-			x86_64_function_push_inst(fn, &mov);
-			x86_64_function_push_inst(fn, &unary);
+			array_push(fn->instructions, mov);
+			array_push(fn->instructions, unary);
 			return;
 		}
 		case IR_NEGATE: {
@@ -83,8 +82,8 @@ static void create_inst(x86_64Function *fn, const IRInstruction *inst)
 				.mnemonic = X86_64_NEG,
 				.instruction.unary.src = {X86_64_PSEUDO, .value.pseudo = inst->dest_id},
 			};
-			x86_64_function_push_inst(fn, &mov);
-			x86_64_function_push_inst(fn, &unary);
+			array_push(fn->instructions, mov);
+			array_push(fn->instructions, unary);
 			return;
 		}
 		case IR_STORE: {
@@ -93,7 +92,7 @@ static void create_inst(x86_64Function *fn, const IRInstruction *inst)
 				.instruction.mov.src = {X86_64_IMMEDIATE, .value.pseudo = inst->src1.value},
 				.instruction.mov.dst = {X86_64_PSEUDO, .value.pseudo = inst->dest_id},
 			};
-			x86_64_function_push_inst(fn, &mov);
+			array_push(fn->instructions, mov);
 			return;
 		}
 
