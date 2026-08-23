@@ -5,6 +5,7 @@
 #include "backend/x86_64/program.h"
 #include "backend/x86_64/regalloc.h"
 #include "ir/ir.h"
+#include "utils/array.h"
 
 static x86_64Function create_fn(const IRFunction *fn);
 static void create_bb(x86_64Function *fn, const IRBasicBlock *bb);
@@ -15,7 +16,7 @@ void x86_64_create_prog(const IR *ir, x86_64Program *prog)
 	assert(prog != NULL);
 	assert(ir != NULL);
 
-	for (int i = 0; i < ir->function_amount; i++) {
+	for (int i = 0; i < array_length(ir->functions); i++) {
 		x86_64Function fn = create_fn(&ir->functions[i]);
 		x86_64_program_push_fn(prog, &fn);
 	}
@@ -27,7 +28,7 @@ static x86_64Function create_fn(const IRFunction *fn)
 {
 	// TODO: name
 	x86_64Function x86_fn = x86_64_function_init("main");
-	for (int i = 0; i < fn->basic_block_amount; i++) {
+	for (int i = 0; i < array_length(fn->basic_blocks); i++) {
 		create_bb(&x86_fn, &fn->basic_blocks[i]);
 	}
 	return x86_fn;
@@ -35,7 +36,7 @@ static x86_64Function create_fn(const IRFunction *fn)
 
 static void create_bb(x86_64Function *fn, const IRBasicBlock *bb)
 {
-	for (int i = 0; i < bb->instruction_amount; i++) {
+	for (int i = 0; i < array_length(bb->instructions); i++) {
 		create_inst(fn, &bb->instructions[i]);
 	}
 }

@@ -8,7 +8,6 @@
 
 typedef struct IR {
 	IRFunction *functions;
-	int function_amount;
 }IR;
 
 void ir_print(IR *ir);
