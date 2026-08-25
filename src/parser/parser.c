@@ -1,11 +1,12 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <assert.h>
 #include <stdbool.h>
 
 #include "lexer/token.h"
 #include "parser/ast.h"
 #include "parser/parser.h"
+
+#include "utils/debug.h"
 
 static ASTNode *parse_program(Parser *p);
 static ASTNode *parse_function(Parser *p);
@@ -25,7 +26,7 @@ static void advance(Parser *p);
 
 void parser_init(Parser *p, Token *token_array)
 {
-	assert(token_array != NULL);
+	ASSERT(token_array != NULL, "token_array must be non-null, use the lexer first");
 
 	p->tokens = token_array;
 	p->next_token = 0;
@@ -41,7 +42,7 @@ void parser_deinit(Parser *p)
 
 void parser_parse(Parser *p)
 {
-	assert(p->ast == NULL);
+	ASSERT(p->ast == NULL, "ast is not null, create a new parser");
 	p->ast = parse_program(p);
 }
 
@@ -56,7 +57,7 @@ static bool expect(Parser *p, TokenType token_type)
 
 static Token* previous(Parser *p)
 {
-	assert(p->next_token > 0);
+	ASSERT(p->next_token > 0, "no previous token");
 
 	return &p->tokens[p->next_token - 1];
 }
@@ -73,7 +74,7 @@ static void advance(Parser *p)
 
 static ASTNode *parse_program(Parser *p)
 {
-	assert(p->ast == NULL);
+	ASSERT(p->ast == NULL, "ast is not null, create a new parser");
 
 	ASTNode *function = parse_function(p);
 	if (function == NULL) return NULL;

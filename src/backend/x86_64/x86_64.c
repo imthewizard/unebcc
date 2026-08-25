@@ -1,7 +1,7 @@
 #include <stdio.h>
-#include <assert.h>
 
 #include "backend/x86_64/x86_64.h"
+#include "utils/debug.h"
 
 static const char *reg_to_str[] = {
 	[X86_64_AX] = "eax",
@@ -34,7 +34,7 @@ static void print_operand(const x86_64Operand *operand)
 		case X86_64_PSEUDO: printf("%d", operand->value.pseudo); break;
 		case X86_64_STACK: printf("%d", operand->value.stack); break;
 
-		default: assert(0);
+		default: UNIMPLEMENTED("Unhandled type case");
 	}
 	printf("}");
 }
@@ -61,7 +61,7 @@ void x86_64_print_inst(const x86_64Instruction *inst)
 			break;
 		case X86_64_DEALLOCATE_STACK: break;
 
-		default: assert(0);
+		default: UNIMPLEMENTED("Unhandled mnemonic case");
 	}
 
 	printf("\n");

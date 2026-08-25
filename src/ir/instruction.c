@@ -1,7 +1,7 @@
 #include <stdio.h>
-#include <assert.h>
 
 #include "ir/instruction.h"
+#include "utils/debug.h"
 
 void instruction_print(const IRInstruction *inst)
 {
@@ -19,8 +19,7 @@ void instruction_print(const IRInstruction *inst)
 			printf("tmp%d = const %d", inst->dest_id, inst->src1.value);
 			break;
 
-		default:
-			assert(0); // unimplemented
+		default: UNIMPLEMENTED("Unhandled instruction type case");
 	}
 	printf("\n");
 }

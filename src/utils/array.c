@@ -1,12 +1,12 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <assert.h>
 
 #include "utils/array.h"
+#include "utils/debug.h"
 
 void *_array_init(int element_size, int array_size)
 {
-	assert(array_size > 0);
+	ASSERT(array_size > 0, "invalid array size");
 
 	void *arr = malloc(sizeof(_ArrayHeader) + (element_size * array_size));
 

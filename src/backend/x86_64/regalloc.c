@@ -1,9 +1,9 @@
-#include <assert.h>
-
 #include "backend/x86_64/program.h"
 #include "backend/x86_64/regalloc.h"
 #include "backend/x86_64/x86_64.h"
+
 #include "utils/array.h"
+#include "utils/debug.h"
 
 static void regalloc(x86_64Instruction *inst, int *offset);
 static void stackalloc(x86_64Function *fn, int alloc_amount);
@@ -80,7 +80,7 @@ static void regalloc(x86_64Instruction *inst, int *next_offset)
 		case X86_64_RET:
 			return;
 
-		default: assert(0);
+		default: UNIMPLEMENTED("Unhandled mnemonic case");
 	}
 }
 
@@ -89,7 +89,7 @@ static void stackalloc(x86_64Function *fn, int alloc_amount)
 	if (alloc_amount == 0) return;
 
 	// abs
-	assert(alloc_amount < 0);
+	ASSERT(alloc_amount < 0, "invalid alloc_amount");
 	alloc_amount = -alloc_amount;
 
 	x86_64Instruction sa = {

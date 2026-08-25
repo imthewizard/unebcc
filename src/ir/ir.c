@@ -1,11 +1,12 @@
-#include <assert.h>
-
 #include "ir/ir.h"
 #include "ir/basic_block.h"
 #include "ir/function.h"
 #include "ir/instruction.h"
+
 #include "parser/ast.h"
+
 #include "utils/array.h"
+#include "utils/debug.h"
 
 static void generate_function(IR *ir, ASTNode *fn); // generate ir for function
 static void generate_statement(IRBasicBlock *bb, ASTNode *stmt); // generate ir for statement
@@ -34,13 +35,13 @@ void ir_deinit(IR *ir)
 
 void ir_generate(IR *ir, ASTNode *ast)
 {
-	assert(ast->type == AST_PROGRAM);
+	ASSERT(ast->type == AST_PROGRAM, "invalid ast, type is not AST_PROGRAM");
 	generate_function(ir, ast->node_value.program.function);
 }
 
 static void generate_function(IR *ir, ASTNode *fn)
 {
-	assert(fn->type == AST_FUNCTION);
+	ASSERT(fn->type == AST_FUNCTION, "invalid fn, type is not AST_FUNCTION");
 
 	IRFunction ir_fn;
 	function_init(&ir_fn);
@@ -63,8 +64,7 @@ static void generate_statement(IRBasicBlock *bb, ASTNode *stmt)
 			array_push(bb->instructions, inst);
 			return;
 		}
-		default:
-			assert(0); // Unhandled type
+		default: UNIMPLEMENTED("Unhandled statement type case");
 	}
 
 }
@@ -87,14 +87,11 @@ static IRTemporaryID generate_expression(IRBasicBlock *bb, ASTNode *expr)
 					return inst.dest_id;
 				}
 
-				default:
-					assert(0); // Unhandled type
+				default: UNIMPLEMENTED("Unhandled unary case");
 			}
-			assert(0);
 			break;
 		}
 
-		default:
-			assert(0); // Unhandled type
+		default: UNIMPLEMENTED("Unhandled expression case");
 	}
 }

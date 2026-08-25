@@ -1,8 +1,8 @@
 #include <stdio.h>
-#include <assert.h>
 #include <string.h>
 
 #include "lexer/token.h"
+#include "utils/debug.h"
 
 static const char* token_type_str[] = {
 	[TOKEN_IDENTIFIER] = "IDENTIFIER",
@@ -51,7 +51,7 @@ TokenType keyword_to_tokentype(const char *keyword)
 
 	const int num_keywords = sizeof(keywords) / sizeof(keywords[0]);
 	const int num_types = sizeof(keywords_types) / sizeof(keywords_types[0]);
-	assert(num_keywords == num_types);
+	ASSERT(num_keywords == num_types, "missing keyword in keywords or type in keywords_types");
 
 	for (int i = 0; i < num_keywords; i++){
 		if ((strcmp(keyword, keywords[i])) == 0){

@@ -1,11 +1,11 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <string.h>
-#include <assert.h>
 #include <stdbool.h>
 
 #include "lexer/lexer.h"
 #include "utils/array.h"
+#include "utils/debug.h"
 
 // Increments lexer->pos to skip whitespace, if needed
 static void skip_whitespace(Lexer *lexer);
@@ -33,8 +33,8 @@ void lexer_init(Lexer *lexer, const char *buffer, unsigned int buffer_len)
 #include <stdio.h>
 void lexer_scan_tokens(Lexer *lexer, Token **token_array)
 {
-	assert(lexer->buffer != NULL);
-	assert(*token_array != NULL);
+	ASSERT(lexer->buffer != NULL, "lexer buffer is invalid");
+	ASSERT(*token_array != NULL, "token_array is invalid");
 
 	Token token;
 	do {

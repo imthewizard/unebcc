@@ -1,9 +1,9 @@
 #include <stdio.h>
-#include <assert.h>
 
 #include "backend/x86_64/emitter.h"
 #include "backend/x86_64/x86_64.h"
 #include "utils/array.h"
+#include "utils/debug.h"
 
 static void print_setup(void);
 static void print_end(void);
@@ -55,7 +55,7 @@ static void print_operand(const x86_64Operand *op)
 			}
 			break;
 
-		case X86_64_PSEUDO: assert(0); // there should be no pseudos here
+		default: ASSERT(0, "invalid type: missing or failed regalloc");
 	}
 }
 
@@ -95,6 +95,6 @@ static void emit_instruction(const x86_64Instruction *inst)
 			puts("pop rbp");
 			break;
 
-		default: assert(0);
+		default: UNIMPLEMENTED("Unhandled mnemonic case");
 	}
 }

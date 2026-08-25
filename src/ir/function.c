@@ -1,5 +1,3 @@
-#include <assert.h>
-
 #include "ir/function.h"
 #include "ir/basic_block.h"
 #include "utils/array.h"
