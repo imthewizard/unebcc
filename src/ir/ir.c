@@ -41,8 +41,6 @@ void ir_generate(IR *ir, ASTNode *ast)
 
 static void generate_function(IR *ir, ASTNode *fn)
 {
-	ASSERT(fn->type == AST_FUNCTION, "invalid fn, type is not AST_FUNCTION");
-
 	IRFunction ir_fn;
 	function_init(&ir_fn);
 
@@ -90,6 +88,29 @@ static IRTemporaryID generate_expression(IRBasicBlock *bb, ASTNode *expr)
 				default: UNIMPLEMENTED("Unhandled unary case");
 			}
 			break;
+		}
+		case AST_BINARY:{
+			IRTemporaryID left = generate_expression(bb, expr->node_value.binary.left);
+			IRTemporaryID right = generate_expression(bb, expr->node_value.binary.right);
+
+			IRInstruction inst;
+			switch (expr->node_value.binary.type) {
+				case AST_BINARY_ADD:
+					inst = instruction_add(left, right); break;
+				case AST_BINARY_SUBTRACT:
+					inst = instruction_sub(left, right); break;
+				case AST_BINARY_MULTIPLY:
+					inst = instruction_mul(left, right); break;
+				case AST_BINARY_DIVIDE:
+					inst = instruction_div(left, right); break;
+				case AST_BINARY_REMAINDER:
+					inst = instruction_rem(left, right); break;
+
+				default: UNIMPLEMENTED("Unhandled binary case");
+			}
+
+			array_push(bb->instructions, inst);
+			return inst.dest_id;
 		}
 
 		default: UNIMPLEMENTED("Unhandled expression case");

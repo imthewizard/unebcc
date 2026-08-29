@@ -16,10 +16,18 @@ typedef struct IROperand {
 }IROperand;
 
 typedef enum IRInstructionType {
+	IR_STORE,
+
 	IR_RETURN,
+
 	IR_BITWISE_NOT,
 	IR_NEGATE,
-	IR_STORE,
+
+	IR_ADD,
+	IR_SUBTRACT,
+	IR_MULTIPLY,
+	IR_DIVIDE,
+	IR_REMAINDER,
 }IRInstructionType;
 
 typedef struct IRInstruction {
@@ -40,5 +48,16 @@ IRInstruction instruction_store_const(int value);
 IRInstruction instruction_negate_temp(IRTemporaryID temp);
 // Returns the instruction that represents a return
 IRInstruction instruction_return(int value);
+
+// Sum of 2 temporaries instruction
+IRInstruction instruction_add(IRTemporaryID lhs, IRTemporaryID rhs);
+// Subtraction of 2 temporaries instruction
+IRInstruction instruction_sub(IRTemporaryID lhs, IRTemporaryID rhs);
+// Multiplication of 2 temporaries instruction
+IRInstruction instruction_mul(IRTemporaryID lhs, IRTemporaryID rhs);
+// Division of 2 temporaries instruction
+IRInstruction instruction_div(IRTemporaryID lhs, IRTemporaryID rhs);
+// Remainder of 2 temporaries instruction
+IRInstruction instruction_rem(IRTemporaryID lhs, IRTemporaryID rhs);
 
 #endif // UNEBCC_IR_INSTRUCTION_H
