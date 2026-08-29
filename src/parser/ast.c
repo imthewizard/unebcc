@@ -30,6 +30,14 @@ static const char *unary_type_str[] = {
 	[AST_UNARY_NEGATE] = "NEGATE",
 };
 
+static const char *binary_type_str[] = {
+	[AST_BINARY_ADD] = "ADD",
+	[AST_BINARY_SUBTRACT] = "SUBTRACT",
+	[AST_BINARY_MULTIPLY] = "MULTIPLY",
+	[AST_BINARY_DIVIDE] = "DIVIDE",
+	[AST_BINARY_REMAINDER] = "REMAINDER",
+};
+
 static ASTNode *alloc_node(ASTNodeType type)
 {
 	ASTNode *node = malloc(sizeof(ASTNode));
@@ -73,6 +81,17 @@ void ast_print(ASTNode *main, int indent)
 			PRINT_INDENT(indent, ")\n");
 			break;
 	   }
+		case AST_BINARY:{
+			const ASTBinaryType type = main->node_value.binary.type;
+			PRINT_INDENT(indent, "Binary(\n");
+			PRINT_FMT_INDENT(next_indent, "type=%s\n", binary_type_str[type]);
+			PRINT_INDENT(next_indent, "left=\n");
+			ast_print(main->node_value.binary.left, next_indent + INDENT_PER_LEVEL);
+			PRINT_INDENT(next_indent, "right=\n");
+			ast_print(main->node_value.binary.right, next_indent + INDENT_PER_LEVEL);
+			PRINT_INDENT(indent, ")\n");
+			break;
+	   }
 
 		default:
 			PRINT_INDENT(indent, "UNKNOWN_TYPE");
@@ -97,6 +116,10 @@ void ast_free_node(ASTNode *main)
 			break;
 		case AST_UNARY:
 			ast_free_node(main->node_value.unary.expression);
+			break;
+		case AST_BINARY:
+			ast_free_node(main->node_value.binary.left);
+			ast_free_node(main->node_value.binary.right);
 			break;
 
 		default: break;
@@ -140,5 +163,13 @@ ASTNode *ast_unary(ASTUnaryType type, ASTNode *exp)
 	node->node_value.unary.type = type;
 	node->node_value.unary.expression = exp;
 	return node;
+}
 
+ASTNode *ast_binary(ASTBinaryType type, ASTNode *left, ASTNode *right)
+{
+	ASTNode *node = alloc_node(AST_BINARY);
+	node->node_value.binary.type = type;
+	node->node_value.binary.left = left;
+	node->node_value.binary.right = right;
+	return node;
 }

@@ -7,12 +7,21 @@ typedef	enum ASTNodeType {
 	AST_RETURN_STATEMENT,
 	AST_INT_LITERAL,
 	AST_UNARY,
+	AST_BINARY,
 }ASTNodeType;
 
 typedef enum ASTUnaryType {
 	AST_UNARY_BITWISE_NOT,
 	AST_UNARY_NEGATE,
 }ASTUnaryType;
+
+typedef enum ASTBinaryType {
+	AST_BINARY_ADD,
+	AST_BINARY_SUBTRACT,
+	AST_BINARY_MULTIPLY,
+	AST_BINARY_DIVIDE,
+	AST_BINARY_REMAINDER,
+}ASTBinaryType;
 
 typedef struct ASTNode ASTNode;
 struct ASTNode {
@@ -40,6 +49,12 @@ struct ASTNode {
 			ASTUnaryType type;
 			ASTNode *expression;
 		} unary;
+
+		struct {
+			ASTBinaryType type;
+			ASTNode *left;
+			ASTNode *right;
+		} binary;
 	} node_value;
 };
 
@@ -59,5 +74,7 @@ ASTNode *ast_return_statement(ASTNode *exp);
 ASTNode *ast_int_literal(int value);
 // Allocates a new unary node
 ASTNode *ast_unary(ASTUnaryType type, ASTNode *exp);
+// Allocates a new binary node
+ASTNode *ast_binary(ASTBinaryType type, ASTNode *left, ASTNode *right);
 
 #endif // UNEBCC_AST_H
