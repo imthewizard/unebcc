@@ -13,8 +13,12 @@ typedef enum TokenType{
 	TOKEN_RETURN,
 
 	// Operators
-	TOKEN_TILDE, // ~
-	TOKEN_MINUS, // -
+	TOKEN_TILDE,         // ~
+	TOKEN_MINUS,         // -
+	TOKEN_PLUS,          // +
+	TOKEN_ASTERISK,      // *
+	TOKEN_FORWARD_SLASH, // /
+	TOKEN_PERCENT,       // %
 
 	TOKEN_DECREMENT, // --
 

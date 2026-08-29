@@ -4,6 +4,7 @@
 #include <stdbool.h>
 
 #include "lexer/lexer.h"
+#include "lexer/token.h"
 #include "utils/array.h"
 #include "utils/debug.h"
 
@@ -62,6 +63,10 @@ static Token scan_next_token(Lexer *lexer)
 		   if (peek(lexer) != '-')
 			   return (Token){TOKEN_MINUS, NULL};
 		   break;
+		case('+'): return (Token){TOKEN_PLUS, NULL};
+		case('*'): return (Token){TOKEN_ASTERISK, NULL};
+		case('/'): return (Token){TOKEN_FORWARD_SLASH, NULL};
+		case('%'): return (Token){TOKEN_PERCENT, NULL};
 
 		case('('): return (Token){TOKEN_LPAREN, NULL};
 		case(')'): return (Token){TOKEN_RPAREN, NULL};

@@ -15,6 +15,10 @@ static const char* token_type_str[] = {
 
 	[TOKEN_TILDE] = "TILDE",
 	[TOKEN_MINUS] = "MINUS",
+	[TOKEN_PLUS] = "PLUS",
+	[TOKEN_ASTERISK] = "ASTERISK",
+	[TOKEN_FORWARD_SLASH] = "FORWARD_SLASH",
+	[TOKEN_PERCENT] = "PERCENT",
 
 	[TOKEN_DECREMENT] = "DECREMENT",
 
