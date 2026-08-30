@@ -33,8 +33,8 @@ static void regalloc(x86_64Instruction *inst, int *next_offset)
 
 	switch (inst->mnemonic) {
 		case X86_64_MOV:
-			if (inst->instruction.mov.dst.type == X86_64_PSEUDO) {
-				int pseudo_id = inst->instruction.mov.dst.value.pseudo;
+			if (inst->instruction.binary.dst.type == X86_64_PSEUDO) {
+				int pseudo_id = inst->instruction.binary.dst.value.pseudo;
 				int map_off = pseudo_offset_map[pseudo_id];
 
 				if (map_off == 0) {
@@ -43,11 +43,11 @@ static void regalloc(x86_64Instruction *inst, int *next_offset)
 					*next_offset -= 4;
 				}
 
-				inst->instruction.mov.dst.type = X86_64_STACK;
-				inst->instruction.mov.dst.value.stack = pseudo_offset_map[pseudo_id];
+				inst->instruction.binary.dst.type = X86_64_STACK;
+				inst->instruction.binary.dst.value.stack = pseudo_offset_map[pseudo_id];
 			}
-			if (inst->instruction.mov.src.type == X86_64_PSEUDO) {
-				int pseudo_id = inst->instruction.mov.src.value.pseudo;
+			if (inst->instruction.binary.src.type == X86_64_PSEUDO) {
+				int pseudo_id = inst->instruction.binary.src.value.pseudo;
 				int map_off = pseudo_offset_map[pseudo_id];
 
 				if (map_off == 0) {
@@ -56,8 +56,8 @@ static void regalloc(x86_64Instruction *inst, int *next_offset)
 					*next_offset -= 4;
 				}
 
-				inst->instruction.mov.src.type = X86_64_STACK;
-				inst->instruction.mov.src.value.stack = pseudo_offset_map[pseudo_id];
+				inst->instruction.binary.src.type = X86_64_STACK;
+				inst->instruction.binary.src.value.stack = pseudo_offset_map[pseudo_id];
 			}
 			return;
 
@@ -92,13 +92,8 @@ static void stackalloc(x86_64Function *fn, int alloc_amount)
 	ASSERT(alloc_amount < 0, "invalid alloc_amount");
 	alloc_amount = -alloc_amount;
 
-	x86_64Instruction sa = {
-		.mnemonic = X86_64_ALLOCATE_STACK,
-		.instruction.stack.value = alloc_amount,
-	};
-	x86_64Instruction sd = {
-		.mnemonic = X86_64_DEALLOCATE_STACK,
-	};
+	x86_64Instruction sa = X64_INSTRUCTION_STACK(X86_64_ALLOCATE_STACK, alloc_amount);
+	x86_64Instruction sd = X64_INSTRUCTION_NO_OPS(X86_64_DEALLOCATE_STACK);
 
 	array_insert(fn->instructions, sa, 0);
 	array_insert(fn->instructions, sd, array_length(fn->instructions) - 1);
@@ -110,8 +105,8 @@ static void fix_invalid_movs(x86_64Function *fn)
 		x86_64Instruction *inst = &fn->instructions[i];
 
 		if (inst->mnemonic == X86_64_MOV) {
-			x86_64Operand *dst = &inst->instruction.mov.dst;
-			x86_64Operand *src = &inst->instruction.mov.src;
+			x86_64Operand *dst = &inst->instruction.binary.dst;
+			x86_64Operand *src = &inst->instruction.binary.src;
 
 			// is this a mov [STACK2], [STACK1]?
 			if (dst->type == X86_64_STACK && src->type == X86_64_STACK) {
@@ -122,11 +117,10 @@ static void fix_invalid_movs(x86_64Function *fn)
 				dst->value.reg = X86_64_R10;
 
 				// Place a mov [STACK2], r10
-				x86_64Instruction new = {
-					.mnemonic = X86_64_MOV,
-					.instruction.mov.dst = {X86_64_STACK, .value.stack = old_dst_stack},
-					.instruction.mov.src = {X86_64_REGISTER, .value.reg = X86_64_R10},
-				};
+				x86_64Instruction new = X64_INSTRUCTION_BINARY(X86_64_MOV,
+					X64_OPERAND_STACK(old_dst_stack),
+					X64_OPERAND_REG(X86_64_R10)
+				);
 				array_insert(fn->instructions, new, i + 1);
 			}
 		}

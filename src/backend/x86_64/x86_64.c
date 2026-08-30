@@ -1,5 +1,7 @@
 #include <stdio.h>
 
+#include "ir/instruction.h"
+
 #include "backend/x86_64/x86_64.h"
 #include "utils/debug.h"
 
@@ -45,8 +47,8 @@ void x86_64_print_inst(const x86_64Instruction *inst)
 
 	switch (inst->mnemonic) {
 		case X86_64_MOV:
-			print_operand(&inst->instruction.mov.dst);
-			print_operand(&inst->instruction.mov.src);
+			print_operand(&inst->instruction.binary.dst);
+			print_operand(&inst->instruction.binary.src);
 			break;
 		case X86_64_RET: break;
 		case X86_64_NEG:
@@ -57,7 +59,7 @@ void x86_64_print_inst(const x86_64Instruction *inst)
 			break;
 
 		case X86_64_ALLOCATE_STACK:
-			printf("{ALLOC %d}", inst->instruction.stack.value);
+			printf("{ALLOC %d}", inst->instruction.unary.src.value.stack);
 			break;
 		case X86_64_DEALLOCATE_STACK: break;
 
@@ -65,6 +67,17 @@ void x86_64_print_inst(const x86_64Instruction *inst)
 	}
 
 	printf("\n");
+}
+
+x86_64Operand x86_64_ir_operand(const IROperand *ir_op)
+{
+	switch (ir_op->type) {
+		case IR_OPERAND_TEMP:
+			return X64_OPERAND_PSEUDO(ir_op->value);
+		case IR_OPERAND_CONST:
+			return X64_OPERAND_IMM(ir_op->value);
+		default: UNIMPLEMENTED("Unhandled ir_op type");
+	}
 }
 
 const char *x86_64_reg_to_str(x86_64Registers reg)

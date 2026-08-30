@@ -45,44 +45,35 @@ static void create_inst(x86_64Function *fn, const IRInstruction *inst)
 {
 	switch (inst->type) {
 		case IR_RETURN: {
-			x86_64Instruction mov = {
-				.mnemonic = X86_64_MOV,
-				.instruction.mov.dst = {X86_64_REGISTER, .value.reg = X86_64_AX},
-				.instruction.mov.src = {X86_64_PSEUDO, .value.pseudo = inst->src1.value},
-			};
-			x86_64Instruction ret = {
-				.mnemonic = X86_64_RET
-			};
+			x86_64Instruction mov = X64_INSTRUCTION_BINARY(X86_64_MOV,
+				X64_OPERAND_REG(X86_64_AX),
+				x86_64_ir_operand(&inst->src1)
+			);
+			x86_64Instruction ret = X64_INSTRUCTION_NO_OPS(X86_64_RET);
 			array_push(fn->instructions, mov);
 			array_push(fn->instructions, ret);
 			return;
 		}
 		case IR_BITWISE_NOT: {
-			ASSERT(inst->src1.type == IR_OPERAND_TEMP, "invalid bitwise not: source is not a temporary");
-			x86_64Instruction mov = {
-				.mnemonic = X86_64_MOV,
-				.instruction.mov.src = {X86_64_PSEUDO, .value.pseudo = inst->src1.value},
-				.instruction.mov.dst = {X86_64_PSEUDO, .value.pseudo = inst->dest_id},
-			};
-			x86_64Instruction unary = {
-				.mnemonic = X86_64_NOT,
-				.instruction.unary.src = {X86_64_PSEUDO, .value.pseudo = inst->dest_id},
-			};
+			x86_64Instruction mov = X64_INSTRUCTION_BINARY(X86_64_MOV,
+				X64_OPERAND_PSEUDO(inst->dest_id),
+				x86_64_ir_operand(&inst->src1)
+			);
+			x86_64Instruction unary = X64_INSTRUCTION_UNARY(X86_64_NOT,
+				X64_OPERAND_PSEUDO(inst->dest_id)
+			);
 			array_push(fn->instructions, mov);
 			array_push(fn->instructions, unary);
 			return;
 		}
 		case IR_NEGATE: {
-			ASSERT(inst->src1.type == IR_OPERAND_TEMP, "invalid negate: source is not a temporary");
-			x86_64Instruction mov = {
-				.mnemonic = X86_64_MOV,
-				.instruction.mov.src = {X86_64_PSEUDO, .value.pseudo = inst->src1.value},
-				.instruction.mov.dst = {X86_64_PSEUDO, .value.pseudo = inst->dest_id},
-			};
-			x86_64Instruction unary = {
-				.mnemonic = X86_64_NEG,
-				.instruction.unary.src = {X86_64_PSEUDO, .value.pseudo = inst->dest_id},
-			};
+			x86_64Instruction mov = X64_INSTRUCTION_BINARY(X86_64_MOV,
+				X64_OPERAND_PSEUDO(inst->dest_id),
+				x86_64_ir_operand(&inst->src1)
+			);
+			x86_64Instruction unary = X64_INSTRUCTION_UNARY(X86_64_NEG,
+				X64_OPERAND_PSEUDO(inst->dest_id)
+			);
 			array_push(fn->instructions, mov);
 			array_push(fn->instructions, unary);
 			return;

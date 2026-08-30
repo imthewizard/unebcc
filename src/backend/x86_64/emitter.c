@@ -64,9 +64,9 @@ static void emit_instruction(const x86_64Instruction *inst)
 	switch (inst->mnemonic) {
 		case X86_64_MOV:
 			printf("mov ");
-			print_operand(&inst->instruction.mov.dst);
+			print_operand(&inst->instruction.binary.dst);
 			printf(", ");
-			print_operand(&inst->instruction.mov.src);
+			print_operand(&inst->instruction.binary.src);
 			printf("\n");
 			break;
 
@@ -88,7 +88,7 @@ static void emit_instruction(const x86_64Instruction *inst)
 		case X86_64_ALLOCATE_STACK:
 			puts("push rbp");
 			puts("mov rbp, rsp");
-			printf("sub rsp, %d\n", inst->instruction.stack.value);
+			printf("sub rsp, %d\n", inst->instruction.unary.src.value.stack);
 			break;
 		case X86_64_DEALLOCATE_STACK:
 			puts("mov rsp, rbp");
