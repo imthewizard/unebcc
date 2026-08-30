@@ -7,7 +7,9 @@
 
 static const char *reg_to_str[] = {
 	[X86_64_AX] = "eax",
+	[X86_64_DX] = "edx",
 	[X86_64_R10] = "r10d",
+	[X86_64_R11] = "r11d",
 };
 
 static const char *mnemonic_to_str[] = {
@@ -15,6 +17,14 @@ static const char *mnemonic_to_str[] = {
 	[X86_64_RET] = "RET",
 	[X86_64_NEG] = "NEG",
 	[X86_64_NOT] = "NOT",
+
+	[X86_64_ADD] = "ADD",
+	[X86_64_SUB] = "SUB",
+	[X86_64_IMUL] = "IMUL",
+
+	[X86_64_IDIV] = "IDIV",
+
+	[X86_64_CDQ] = "CDQ",
 
 	[X86_64_ALLOCATE_STACK] = "ALLOCATE_STACK",
 	[X86_64_DEALLOCATE_STACK] = "DEALLOCATE_STACK",
@@ -46,14 +56,19 @@ void x86_64_print_inst(const x86_64Instruction *inst)
 	printf("%s:\t", mnemonic_to_str[inst->mnemonic]);
 
 	switch (inst->mnemonic) {
+		case X86_64_ADD:
+		case X86_64_SUB:
+		case X86_64_IMUL:
 		case X86_64_MOV:
 			print_operand(&inst->instruction.binary.dst);
 			print_operand(&inst->instruction.binary.src);
 			break;
+
+		case X86_64_CDQ:
 		case X86_64_RET: break;
+
+		case X86_64_IDIV:
 		case X86_64_NEG:
-			print_operand(&inst->instruction.unary.src);
-			break;
 		case X86_64_NOT:
 			print_operand(&inst->instruction.unary.src);
 			break;

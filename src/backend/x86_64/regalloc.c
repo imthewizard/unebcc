@@ -5,9 +5,17 @@
 #include "utils/array.h"
 #include "utils/debug.h"
 
+// Maps the IR's pseudo values to registers
 static void regalloc(x86_64Instruction *inst, int *offset);
+// Handles the function prologue and epilogue
 static void stackalloc(x86_64Function *fn, int alloc_amount);
-static void fix_invalid_movs(x86_64Function *fn);
+
+// Some instructions can't have memory addresses as both dst and src
+static void fix_invalid_addr_addr(x86_64Function *fn);
+// imul cannot have a memory address as its destination
+static void fix_invalid_imuls(x86_64Function *fn);
+// idiv cannot have immediates as operands
+static void fix_invalid_idivs(x86_64Function *fn);
 
 void x86_64_regalloc(x86_64Program *prog)
 {
@@ -22,7 +30,9 @@ void x86_64_regalloc(x86_64Program *prog)
 		}
 
 		stackalloc(fn, next_stack_offset + 4);
-		fix_invalid_movs(fn);
+		fix_invalid_addr_addr(fn);
+		fix_invalid_imuls(fn);
+		fix_invalid_idivs(fn);
 	}
 }
 
@@ -32,6 +42,9 @@ static void regalloc(x86_64Instruction *inst, int *next_offset)
 	static int pseudo_offset_map[1024] = {0};
 
 	switch (inst->mnemonic) {
+		case X86_64_ADD:
+		case X86_64_SUB:
+		case X86_64_IMUL:
 		case X86_64_MOV:
 			if (inst->instruction.binary.dst.type == X86_64_PSEUDO) {
 				int pseudo_id = inst->instruction.binary.dst.value.pseudo;
@@ -61,6 +74,7 @@ static void regalloc(x86_64Instruction *inst, int *next_offset)
 			}
 			return;
 
+		case X86_64_IDIV:
 		case X86_64_NEG:
 		case X86_64_NOT:
 			if (inst->instruction.unary.src.type == X86_64_PSEUDO) {
@@ -77,6 +91,7 @@ static void regalloc(x86_64Instruction *inst, int *next_offset)
 				inst->instruction.unary.src.value.stack = pseudo_offset_map[pseudo_id];
 			}
 
+		case X86_64_CDQ:
 		case X86_64_RET:
 			return;
 
@@ -99,26 +114,93 @@ static void stackalloc(x86_64Function *fn, int alloc_amount)
 	array_insert(fn->instructions, sd, array_length(fn->instructions) - 1);
 }
 
-static void fix_invalid_movs(x86_64Function *fn)
+static void fix_invalid_addr_addr(x86_64Function *fn)
 {
 	for (int i = 0; i < array_length(fn->instructions); i++) {
 		x86_64Instruction *inst = &fn->instructions[i];
 
-		if (inst->mnemonic == X86_64_MOV) {
+		if (inst->mnemonic == X86_64_MOV ||
+			inst->mnemonic == X86_64_ADD ||
+			inst->mnemonic == X86_64_SUB) {
 			x86_64Operand *dst = &inst->instruction.binary.dst;
 			x86_64Operand *src = &inst->instruction.binary.src;
 
-			// is this a mov [STACK2], [STACK1]?
+			// is this a [mnemonic] [STACK2], [STACK1]?
 			if (dst->type == X86_64_STACK && src->type == X86_64_STACK) {
 				int old_dst_stack = dst->value.stack;
+				int old_src_stack = src->value.stack;
+				x86_64Mnemonics old_mnemonic = inst->mnemonic;
 
 				// Change this instruction to mov r10, [STACK1]
-				dst->type = X86_64_REGISTER;
-				dst->value.reg = X86_64_R10;
+				inst->mnemonic = X86_64_MOV;
+				inst->instruction.binary.dst = X64_OPERAND_REG(X86_64_R10);
+				inst->instruction.binary.src = X64_OPERAND_STACK(old_src_stack);
 
-				// Place a mov [STACK2], r10
-				x86_64Instruction new = X64_INSTRUCTION_BINARY(X86_64_MOV,
+				// Place a [mnemonic] [STACK2], r10
+				x86_64Instruction new = X64_INSTRUCTION_BINARY(old_mnemonic,
 					X64_OPERAND_STACK(old_dst_stack),
+					X64_OPERAND_REG(X86_64_R10)
+				);
+				array_insert(fn->instructions, new, i + 1);
+			}
+		}
+	}
+}
+
+static void fix_invalid_imuls(x86_64Function *fn)
+{
+	for (int i = 0; i < array_length(fn->instructions); i++) {
+		x86_64Instruction *inst = &fn->instructions[i];
+		x86_64Operand *dst = &inst->instruction.binary.dst;
+
+		// is this an imul [STACK], [operand]?
+		if (inst->mnemonic == X86_64_IMUL && dst->type == X86_64_STACK) {
+			x86_64Operand *src = &inst->instruction.binary.src;
+
+			int old_dst_stack = dst->value.stack;
+			x86_64Operand old_src = *src;
+
+			// Change this instruction to mov r11d, [STACK1]
+			inst->mnemonic = X86_64_MOV;
+			inst->instruction.binary.dst = X64_OPERAND_REG(X86_64_R11);
+			inst->instruction.binary.src = X64_OPERAND_STACK(old_dst_stack);
+
+			// Place a imul r11d, [operand]
+			x86_64Instruction new_imul = X64_INSTRUCTION_BINARY(X86_64_IMUL,
+				X64_OPERAND_REG(X86_64_R11),
+				old_src
+			);
+			array_insert(fn->instructions, new_imul, i + 1);
+
+			// Place a mov [STACK], r11d
+			x86_64Instruction new_mov = X64_INSTRUCTION_BINARY(X86_64_MOV,
+				X64_OPERAND_STACK(old_dst_stack),
+				X64_OPERAND_REG(X86_64_R11)
+			);
+			array_insert(fn->instructions, new_mov, i + 2);
+		}
+	}
+}
+
+static void fix_invalid_idivs(x86_64Function *fn)
+{
+	for (int i = 0; i < array_length(fn->instructions); i++) {
+		x86_64Instruction *inst = &fn->instructions[i];
+
+		if (inst->mnemonic == X86_64_IDIV) {
+			x86_64Operand *src = &inst->instruction.unary.src;
+
+			// is this a idiv [IMMEDIATE]?
+			if (src->type == X86_64_IMMEDIATE) {
+				int old_immediate = src->value.imm;
+
+				// Change this instruction to mov r10d, [IMMEDIATE]
+				inst->mnemonic = X86_64_MOV;
+				inst->instruction.binary.dst = X64_OPERAND_REG(X86_64_R10);
+				inst->instruction.binary.src = X64_OPERAND_IMM(old_immediate);
+
+				// Place a idiv r10d
+				x86_64Instruction new = X64_INSTRUCTION_UNARY(X86_64_IDIV,
 					X64_OPERAND_REG(X86_64_R10)
 				);
 				array_insert(fn->instructions, new, i + 1);

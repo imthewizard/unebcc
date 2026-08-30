@@ -5,7 +5,9 @@
 
 typedef enum x86_64Registers {
 	X86_64_AX,
+	X86_64_DX,
 	X86_64_R10,
+	X86_64_R11,
 }x86_64Registers;
 
 typedef enum x86_64Mnemonics {
@@ -13,6 +15,14 @@ typedef enum x86_64Mnemonics {
 	X86_64_RET,
 	X86_64_NEG,
 	X86_64_NOT,
+
+	X86_64_ADD,
+	X86_64_SUB,
+	X86_64_IMUL,
+
+	X86_64_IDIV,
+
+	X86_64_CDQ,
 
 	// Pseudo
 	X86_64_ALLOCATE_STACK,
