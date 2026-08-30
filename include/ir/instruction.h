@@ -1,7 +1,6 @@
 #ifndef UNEBCC_IR_INSTRUCTION_H
 #define UNEBCC_IR_INSTRUCTION_H
 
-
 typedef unsigned int IRTemporaryID;
 
 typedef enum IROperandType {
@@ -16,8 +15,6 @@ typedef struct IROperand {
 }IROperand;
 
 typedef enum IRInstructionType {
-	IR_STORE,
-
 	IR_RETURN,
 
 	IR_BITWISE_NOT,
@@ -37,27 +34,55 @@ typedef struct IRInstruction {
 	IROperand src2;
 }IRInstruction;
 
+// Prints the instruction
 void instruction_print(const IRInstruction *inst);
 
 // Returns a new unique temporary id
 IRTemporaryID instruction_generate_id(void);
 
-// Returns the instruction that represents a store into a temporary value
-IRInstruction instruction_store_const(int value);
-// Returns the instruction that represents a negation of a temporary into a temporary value
-IRInstruction instruction_negate_temp(IRTemporaryID temp);
-// Returns the instruction that represents a return
-IRInstruction instruction_return(int value);
+// Creates a new unary instruction
+IRInstruction ir_instruction_unary(IRInstructionType type, const IROperand *op);
+// Creates a new binary instruction
+IRInstruction ir_instruction_binary(IRInstructionType type, const IROperand *lhs, const IROperand *rhs);
 
-// Sum of 2 temporaries instruction
-IRInstruction instruction_add(IRTemporaryID lhs, IRTemporaryID rhs);
-// Subtraction of 2 temporaries instruction
-IRInstruction instruction_sub(IRTemporaryID lhs, IRTemporaryID rhs);
-// Multiplication of 2 temporaries instruction
-IRInstruction instruction_mul(IRTemporaryID lhs, IRTemporaryID rhs);
-// Division of 2 temporaries instruction
-IRInstruction instruction_div(IRTemporaryID lhs, IRTemporaryID rhs);
-// Remainder of 2 temporaries instruction
-IRInstruction instruction_rem(IRTemporaryID lhs, IRTemporaryID rhs);
+#define IR_OPERAND_CREATE(optype, val) \
+	(IROperand){.type = (optype), .value = (val)}
+
+#define _IR_INSTRUCTION_NO_DST(instruction, src1_type, val) \
+	(IRInstruction){ \
+		.type = (instruction), \
+		.src1 = {.type = (src1_type), .value = (val)}, \
+		.src2 = {.type = IR_OPERAND_NULL}, \
+	};
+#define _IR_INSTRUCTION_UNARY(instruction, src1_type, val) \
+	(IRInstruction){ \
+		.type = (instruction), \
+		.dest_id = instruction_generate_id(), \
+		.src1 = {.type = (src1_type), .value = (val)}, \
+		.src2 = {.type = IR_OPERAND_NULL}, \
+	};
+#define _IR_INSTRUCTION_BINARY(instruction, src1_type, val1, src2_type, val2) \
+	(IRInstruction){ \
+		.type = (instruction), \
+		.dest_id = instruction_generate_id(), \
+		.src1 = {.type = (src1_type), .value = (val1)}, \
+		.src2 = {.type = (src2_type), .value = (val2)}, \
+	};
+
+#define IR_INSTRUCTION_RETURN(temp_id) \
+	_IR_INSTRUCTION_NO_DST((IR_RETURN), (IR_OPERAND_TEMP), (temp_id))
+
+#define IR_INSTRUCTION_UNARY_TEMP(instruction, temp_id) \
+	_IR_INSTRUCTION_UNARY((instruction), (IR_OPERAND_TEMP), (temp_id))
+#define IR_INSTRUCTION_UNARY_CONST(instruction, const_val) \
+	_IR_INSTRUCTION_UNARY((instruction), (IR_OPERAND_CONST), (const_val))
+
+#define IR_INSTRUCTION_BINARY_TEMP_TEMP(instruction, temp1, temp2) \
+	_IR_INSTRUCTION_BINARY((instruction), (IR_OPERAND_TEMP), (temp1), (IR_OPERAND_TEMP), (temp2))
+#define IR_INSTRUCTION_BINARY_TEMP_CONST(instruction, temp1, const_val) \
+	_IR_INSTRUCTION_BINARY((instruction), (IR_OPERAND_TEMP), (temp1), (IR_OPERAND_CONST), (const_val))
+#define IR_INSTRUCTION_BINARY_CONST_CONST(instruction, const1, const2) \
+	_IR_INSTRUCTION_BINARY((instruction), (IR_OPERAND_CONST), (const1), (IR_OPERAND_CONST), (const2))
+
 
 #endif // UNEBCC_IR_INSTRUCTION_H

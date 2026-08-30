@@ -5,41 +5,47 @@
 
 void instruction_print(const IRInstruction *inst)
 {
-	switch(inst->type){
-		case IR_STORE:
-			printf("tmp%d = const %d", inst->dest_id, inst->src1.value);
-			break;
+	if (inst->type == IR_RETURN) {
+		// Special case: return
+		printf("return ");
+		if (inst->src1.type == IR_OPERAND_TEMP) {
+			printf("tmp");
+		}
+		printf("%d", inst->src1.value);
+	} else {
+		printf("tmp%d = ", inst->dest_id);
 
-		case IR_RETURN:
-			printf("return tmp%d", inst->src1.value);
-			break;
+		// Print instruction
+		switch (inst->type) {
+			case IR_BITWISE_NOT: printf("bnot "); break;
+			case IR_NEGATE: printf("not "); break;
 
-		case IR_BITWISE_NOT:
-			printf("tmp%d = not tmp%d", inst->dest_id, inst->src1.value);
-			break;
-		case IR_NEGATE:
-			printf("tmp%d = negate tmp%d", inst->dest_id, inst->src1.value);
-			break;
+			case IR_ADD: printf("add "); break;
+			case IR_SUBTRACT: printf("sub "); break;
+			case IR_MULTIPLY: printf("mul "); break;
+			case IR_DIVIDE: printf("div "); break;
+			case IR_REMAINDER: printf("rem "); break;
 
-		case IR_ADD:
-			printf("tmp%d = add tmp%d, tmp%d", inst->dest_id, inst->src1.value, inst->src2.value);
-			break;
-		case IR_SUBTRACT:
-			printf("tmp%d = subtract tmp%d, tmp%d", inst->dest_id, inst->src1.value, inst->src2.value);
-			break;
-		case IR_MULTIPLY:
-			printf("tmp%d = multiply tmp%d, tmp%d", inst->dest_id, inst->src1.value, inst->src2.value);
-			break;
-		case IR_DIVIDE:
-			printf("tmp%d = divide tmp%d, tmp%d", inst->dest_id, inst->src1.value, inst->src2.value);
-			break;
-		case IR_REMAINDER:
-			printf("tmp%d = remainder tmp%d, tmp%d", inst->dest_id, inst->src1.value, inst->src2.value);
-			break;
+			default: UNIMPLEMENTED("Unhandled case in instruction_print");
+		}
 
-		default: UNIMPLEMENTED("Unhandled instruction type case");
+		// Print src1
+		if (inst->src1.type == IR_OPERAND_TEMP) {
+			printf("tmp");
+		}
+		printf("%d", inst->src1.value);
+
+		// Print src2 if it exists
+		if (inst->src2.type != IR_OPERAND_NULL) {
+			printf(", ");
+			if (inst->src2.type == IR_OPERAND_TEMP) {
+				printf("tmp");
+			}
+			printf("%d", inst->src2.value);
+		}
+
+		printf("\n"); // end
 	}
-	printf("\n");
 }
 
 IRTemporaryID instruction_generate_id(void)
@@ -47,81 +53,36 @@ IRTemporaryID instruction_generate_id(void)
 	static IRTemporaryID counter = 0;
 	return counter++;
 }
-
-IRInstruction instruction_store_const(int value)
+IRInstruction ir_instruction_unary(IRInstructionType type, const IROperand *op)
 {
-	return (IRInstruction){
-		.type = IR_STORE,
-		.dest_id = instruction_generate_id(),
-		.src1 = {.type = IR_OPERAND_CONST, .value = value},
-		.src2 = {.type = IR_OPERAND_NULL},
-	};
+	if (op->type == IR_OPERAND_TEMP) {
+		return IR_INSTRUCTION_UNARY_TEMP(type, op->value);
+	} else if (op->type == IR_OPERAND_CONST) {
+		return IR_INSTRUCTION_UNARY_CONST(type, op->value);
+	} else {
+		ASSERT(0, "Illegal unary IR instruction: not temp or const");
+	}
 }
 
-IRInstruction instruction_negate_temp(IRTemporaryID temp)
+IRInstruction ir_instruction_binary(IRInstructionType type, const IROperand *lhs, const IROperand *rhs)
 {
-	return (IRInstruction){
-		.type = IR_NEGATE,
-		.dest_id = instruction_generate_id(),
-		.src1 = {.type = IR_OPERAND_TEMP, .value = temp},
-		.src2 = {.type = IR_OPERAND_NULL},
-	};
-}
+	ASSERT(((lhs->type == IR_OPERAND_TEMP) || (lhs->type == IR_OPERAND_CONST)), "Illegal binary IR instruction: lhs not temp or const");
 
-IRInstruction instruction_return(int value)
-{
-	return (IRInstruction){
-		.type = IR_RETURN,
-		.src1 = {.type = IR_OPERAND_TEMP, .value = value},
-	};
-}
-
-IRInstruction instruction_add(IRTemporaryID lhs, IRTemporaryID rhs)
-{
-	return (IRInstruction){
-		.type = IR_ADD,
-		.dest_id = instruction_generate_id(),
-		.src1 = {.type = IR_OPERAND_TEMP, .value = lhs},
-		.src2 = {.type = IR_OPERAND_TEMP, .value = rhs},
-	};
-}
-
-IRInstruction instruction_sub(IRTemporaryID lhs, IRTemporaryID rhs)
-{
-	return (IRInstruction){
-		.type = IR_SUBTRACT,
-		.dest_id = instruction_generate_id(),
-		.src1 = {.type = IR_OPERAND_TEMP, .value = lhs},
-		.src2 = {.type = IR_OPERAND_TEMP, .value = rhs},
-	};
-}
-
-IRInstruction instruction_mul(IRTemporaryID lhs, IRTemporaryID rhs)
-{
-	return (IRInstruction){
-		.type = IR_MULTIPLY,
-		.dest_id = instruction_generate_id(),
-		.src1 = {.type = IR_OPERAND_TEMP, .value = lhs},
-		.src2 = {.type = IR_OPERAND_TEMP, .value = rhs},
-	};
-}
-
-IRInstruction instruction_div(IRTemporaryID lhs, IRTemporaryID rhs)
-{
-	return (IRInstruction){
-		.type = IR_DIVIDE,
-		.dest_id = instruction_generate_id(),
-		.src1 = {.type = IR_OPERAND_TEMP, .value = lhs},
-		.src2 = {.type = IR_OPERAND_TEMP, .value = rhs},
-	};
-}
-
-IRInstruction instruction_rem(IRTemporaryID lhs, IRTemporaryID rhs)
-{
-	return (IRInstruction){
-		.type = IR_REMAINDER,
-		.dest_id = instruction_generate_id(),
-		.src1 = {.type = IR_OPERAND_TEMP, .value = lhs},
-		.src2 = {.type = IR_OPERAND_TEMP, .value = rhs},
-	};
+	if (lhs->type == IR_OPERAND_TEMP) {
+		if (rhs->type == IR_OPERAND_TEMP) {
+			return IR_INSTRUCTION_BINARY_TEMP_TEMP(type, lhs->value, rhs->value)
+		} else if (rhs->type == IR_OPERAND_CONST) {
+			return IR_INSTRUCTION_BINARY_TEMP_CONST(type, lhs->value, rhs->value)
+		} else {
+			ASSERT(0, "Illegal binary IR instruction: lhs temp but rhs not temp or const");
+		}
+	} else {
+		if (rhs->type == IR_OPERAND_TEMP) {
+			return IR_INSTRUCTION_BINARY_TEMP_CONST(type, rhs->value, lhs->value)
+		} else if (rhs->type == IR_OPERAND_CONST) {
+			return IR_INSTRUCTION_BINARY_CONST_CONST(type, lhs->value, rhs->value)
+		} else {
+			ASSERT(0, "Illegal binary IR instruction: lhs const but rhs not temp or const");
+		}
+	}
 }

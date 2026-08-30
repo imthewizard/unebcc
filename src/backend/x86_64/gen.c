@@ -87,15 +87,6 @@ static void create_inst(x86_64Function *fn, const IRInstruction *inst)
 			array_push(fn->instructions, unary);
 			return;
 		}
-		case IR_STORE: {
-			x86_64Instruction mov = {
-				.mnemonic = X86_64_MOV,
-				.instruction.mov.src = {X86_64_IMMEDIATE, .value.imm = inst->src1.value},
-				.instruction.mov.dst = {X86_64_PSEUDO, .value.pseudo = inst->dest_id},
-			};
-			array_push(fn->instructions, mov);
-			return;
-		}
 
 		default: UNIMPLEMENTED("Unhandled instruction type case");
 	}

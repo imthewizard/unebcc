@@ -10,7 +10,7 @@
 
 static void generate_function(IR *ir, ASTNode *fn); // generate ir for function
 static void generate_statement(IRBasicBlock *bb, ASTNode *stmt); // generate ir for statement
-static IRTemporaryID generate_expression(IRBasicBlock *bb, ASTNode *expr); // generate ir for expression
+static IROperand generate_expression(IRBasicBlock *bb, ASTNode *expr); // generate ir for expression
 
 void ir_print(IR *ir)
 {
@@ -57,8 +57,8 @@ static void generate_statement(IRBasicBlock *bb, ASTNode *stmt)
 {
 	switch (stmt->type) {
 		case AST_RETURN_STATEMENT:{
-			IRTemporaryID tmp = generate_expression(bb, stmt->node_value.return_statement.expression);
-			IRInstruction inst = instruction_return(tmp);
+			IROperand tmp = generate_expression(bb, stmt->node_value.return_statement.expression);
+			IRInstruction inst = IR_INSTRUCTION_RETURN(tmp.value);
 			array_push(bb->instructions, inst);
 			return;
 		}
@@ -67,22 +67,20 @@ static void generate_statement(IRBasicBlock *bb, ASTNode *stmt)
 
 }
 
-static IRTemporaryID generate_expression(IRBasicBlock *bb, ASTNode *expr)
+static IROperand generate_expression(IRBasicBlock *bb, ASTNode *expr)
 {
 	switch (expr->type) {
 		case AST_INT_LITERAL:{
 			int val = expr->node_value.int_literal.value;
-			IRInstruction inst = instruction_store_const(val);
-			array_push(bb->instructions, inst);
-			return inst.dest_id;
+			return IR_OPERAND_CREATE(IR_OPERAND_CONST, val);
 		}
 		case AST_UNARY:{
-			IRTemporaryID temp = generate_expression(bb, expr->node_value.unary.expression);
+			IROperand inner_op = generate_expression(bb, expr->node_value.unary.expression);
 			switch (expr->node_value.unary.type) {
 				case AST_UNARY_NEGATE:{
-					IRInstruction inst = instruction_negate_temp(temp);
+					IRInstruction inst = ir_instruction_unary(IR_NEGATE, &inner_op);
 					array_push(bb->instructions, inst);
-					return inst.dest_id;
+					return IR_OPERAND_CREATE(IR_OPERAND_TEMP, inst.dest_id);
 				}
 
 				default: UNIMPLEMENTED("Unhandled unary case");
@@ -90,27 +88,27 @@ static IRTemporaryID generate_expression(IRBasicBlock *bb, ASTNode *expr)
 			break;
 		}
 		case AST_BINARY:{
-			IRTemporaryID left = generate_expression(bb, expr->node_value.binary.left);
-			IRTemporaryID right = generate_expression(bb, expr->node_value.binary.right);
+			IROperand left = generate_expression(bb, expr->node_value.binary.left);
+			IROperand right = generate_expression(bb, expr->node_value.binary.right);
 
 			IRInstruction inst;
 			switch (expr->node_value.binary.type) {
 				case AST_BINARY_ADD:
-					inst = instruction_add(left, right); break;
+					inst = ir_instruction_binary(IR_ADD, &left, &right); break;
 				case AST_BINARY_SUBTRACT:
-					inst = instruction_sub(left, right); break;
+					inst = ir_instruction_binary(IR_SUBTRACT, &left, &right); break;
 				case AST_BINARY_MULTIPLY:
-					inst = instruction_mul(left, right); break;
+					inst = ir_instruction_binary(IR_MULTIPLY, &left, &right); break;
 				case AST_BINARY_DIVIDE:
-					inst = instruction_div(left, right); break;
+					inst = ir_instruction_binary(IR_DIVIDE, &left, &right); break;
 				case AST_BINARY_REMAINDER:
-					inst = instruction_rem(left, right); break;
+					inst = ir_instruction_binary(IR_REMAINDER, &left, &right); break;
 
 				default: UNIMPLEMENTED("Unhandled binary case");
 			}
 
 			array_push(bb->instructions, inst);
-			return inst.dest_id;
+			return IR_OPERAND_CREATE(IR_OPERAND_TEMP, inst.dest_id);
 		}
 
 		default: UNIMPLEMENTED("Unhandled expression case");
