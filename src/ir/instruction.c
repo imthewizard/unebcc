@@ -18,6 +18,9 @@ void instruction_print(const IRInstruction *inst)
 		// Print instruction
 		switch (inst->type) {
 			case IR_BITWISE_NOT: printf("bnot "); break;
+			case IR_BITWISE_AND: printf("band "); break;
+			case IR_BITWISE_OR: printf("bor "); break;
+			case IR_BITWISE_XOR: printf("bxor "); break;
 			case IR_NEGATE: printf("not "); break;
 
 			case IR_ADD: printf("add "); break;
@@ -25,6 +28,8 @@ void instruction_print(const IRInstruction *inst)
 			case IR_MULTIPLY: printf("mul "); break;
 			case IR_DIVIDE: printf("div "); break;
 			case IR_REMAINDER: printf("rem "); break;
+			case IR_LEFT_SHIFT: printf("lshift "); break;
+			case IR_RIGHT_SHIFT: printf("rshift "); break;
 
 			default: UNIMPLEMENTED("Unhandled case in instruction_print");
 		}

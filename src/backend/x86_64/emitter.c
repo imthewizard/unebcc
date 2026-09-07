@@ -71,6 +71,11 @@ static void emit_instruction(const x86_64Instruction *inst)
 		case X86_64_ADD: printf("add"); break;
 		case X86_64_SUB: printf("sub"); break;
 		case X86_64_IMUL: printf("imul"); break;
+		case X86_64_AND: printf("and"); break;
+		case X86_64_OR: printf("or"); break;
+		case X86_64_XOR: printf("xor"); break;
+		case X86_64_SHL: printf("shl"); break;
+		case X86_64_SHR: printf("shr"); break;
 
 		case X86_64_IDIV: printf("idiv"); break;
 
@@ -103,6 +108,11 @@ static void emit_instruction(const x86_64Instruction *inst)
 		case X86_64_ADD:
 		case X86_64_SUB:
 		case X86_64_IMUL:
+		case X86_64_AND:
+		case X86_64_OR:
+		case X86_64_XOR:
+		case X86_64_SHL:
+		case X86_64_SHR:
 			printf(" ");
 			print_operand(&inst->instruction.binary.dst);
 			printf(", ");

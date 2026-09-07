@@ -103,6 +103,16 @@ static IROperand generate_expression(IRBasicBlock *bb, ASTNode *expr)
 					inst = ir_instruction_binary(IR_DIVIDE, &left, &right); break;
 				case AST_BINARY_REMAINDER:
 					inst = ir_instruction_binary(IR_REMAINDER, &left, &right); break;
+				case AST_BINARY_BITWISE_AND:
+					inst = ir_instruction_binary(IR_BITWISE_AND, &left, &right); break;
+				case AST_BINARY_BITWISE_OR:
+					inst = ir_instruction_binary(IR_BITWISE_OR, &left, &right); break;
+				case AST_BINARY_BITWISE_XOR:
+					inst = ir_instruction_binary(IR_BITWISE_XOR, &left, &right); break;
+				case AST_BINARY_LEFT_SHIFT:
+					inst = ir_instruction_binary(IR_LEFT_SHIFT, &left, &right); break;
+				case AST_BINARY_RIGHT_SHIFT:
+					inst = ir_instruction_binary(IR_RIGHT_SHIFT, &left, &right); break;
 
 				default: UNIMPLEMENTED("Unhandled binary case");
 			}

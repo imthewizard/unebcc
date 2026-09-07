@@ -60,24 +60,39 @@ static Token scan_next_token(Lexer *lexer)
 	switch(c) {
 		case('~'): return (Token){TOKEN_TILDE, NULL};
 		case('-'):
-		   if (peek(lexer) != '-')
+		   if (peek(lexer) != '-') {
 			   return (Token){TOKEN_MINUS, NULL};
+		   } else {
+			   advance(lexer);
+			   return (Token){TOKEN_DECREMENT, NULL};
+			}
 		   break;
 		case('+'): return (Token){TOKEN_PLUS, NULL};
 		case('*'): return (Token){TOKEN_ASTERISK, NULL};
 		case('/'): return (Token){TOKEN_FORWARD_SLASH, NULL};
 		case('%'): return (Token){TOKEN_PERCENT, NULL};
+		case('&'): return (Token){TOKEN_AMPERSAND, NULL};
+		case('|'): return (Token){TOKEN_PIPE, NULL};
+		case('^'): return (Token){TOKEN_CARET, NULL};
+
+		case('<'):
+			if (peek(lexer) == '<') {
+				advance(lexer);
+				return (Token){TOKEN_LEFT_SHIFT, NULL};
+			}
+			break;
+		case('>'):
+			if (peek(lexer) == '>') {
+				advance(lexer);
+				return (Token){TOKEN_RIGHT_SHIFT, NULL};
+			}
+			break;
 
 		case('('): return (Token){TOKEN_LPAREN, NULL};
 		case(')'): return (Token){TOKEN_RPAREN, NULL};
 		case('{'): return (Token){TOKEN_LBRACE, NULL};
 		case('}'): return (Token){TOKEN_RBRACE, NULL};
 		case(';'): return (Token){TOKEN_SEMICOLON, NULL};
-	}
-
-	// Double characters (TODO: maybe put these inside the single chars switch)
-	switch(c) {
-		case('-'): return (Token){TOKEN_DECREMENT, NULL};
 	}
 
 	// Others

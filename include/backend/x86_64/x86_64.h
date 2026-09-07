@@ -19,6 +19,11 @@ typedef enum x86_64Mnemonics {
 	X86_64_ADD,
 	X86_64_SUB,
 	X86_64_IMUL,
+	X86_64_AND,
+	X86_64_OR,
+	X86_64_XOR,
+	X86_64_SHL,
+	X86_64_SHR,
 
 	X86_64_IDIV,
 

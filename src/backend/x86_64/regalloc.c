@@ -46,6 +46,11 @@ static void regalloc(x86_64Instruction *inst, int *next_offset)
 		case X86_64_SUB:
 		case X86_64_IMUL:
 		case X86_64_MOV:
+		case X86_64_AND:
+		case X86_64_OR:
+		case X86_64_XOR:
+		case X86_64_SHL:
+		case X86_64_SHR:
 			if (inst->instruction.binary.dst.type == X86_64_PSEUDO) {
 				int pseudo_id = inst->instruction.binary.dst.value.pseudo;
 				int map_off = pseudo_offset_map[pseudo_id];

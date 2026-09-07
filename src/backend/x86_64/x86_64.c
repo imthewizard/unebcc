@@ -21,6 +21,11 @@ static const char *mnemonic_to_str[] = {
 	[X86_64_ADD] = "ADD",
 	[X86_64_SUB] = "SUB",
 	[X86_64_IMUL] = "IMUL",
+	[X86_64_AND] = "AND",
+	[X86_64_OR] = "OR",
+	[X86_64_XOR] = "XOR",
+	[X86_64_SHL] = "SHL",
+	[X86_64_SHR] = "SHR",
 
 	[X86_64_IDIV] = "IDIV",
 
@@ -60,6 +65,11 @@ void x86_64_print_inst(const x86_64Instruction *inst)
 		case X86_64_SUB:
 		case X86_64_IMUL:
 		case X86_64_MOV:
+		case X86_64_AND:
+		case X86_64_OR:
+		case X86_64_XOR:
+		case X86_64_SHL:
+		case X86_64_SHR:
 			print_operand(&inst->instruction.binary.dst);
 			print_operand(&inst->instruction.binary.src);
 			break;

@@ -80,12 +80,19 @@ static void advance(Parser *p)
 static int precedence(TokenType token_type)
 {
 	switch (token_type) {
+		case TOKEN_PIPE: return 1;
+		case TOKEN_CARET: return 2;
+		case TOKEN_AMPERSAND: return 3;
+
+		case TOKEN_LEFT_SHIFT:
+		case TOKEN_RIGHT_SHIFT: return 4;
+
 		case TOKEN_PLUS:
-		case TOKEN_MINUS: return 1;
+		case TOKEN_MINUS: return 5;
 
 		case TOKEN_ASTERISK:
 		case TOKEN_FORWARD_SLASH:
-		case TOKEN_PERCENT: return 2;
+		case TOKEN_PERCENT: return 6;
 
 		default: UNIMPLEMENTED("unhandled token type in precedence");
 	}
@@ -98,7 +105,13 @@ static bool is_binary_operator(TokenType token_type)
 		case TOKEN_MINUS:
 		case TOKEN_ASTERISK:
 		case TOKEN_FORWARD_SLASH:
-		case TOKEN_PERCENT: return true;
+		case TOKEN_PERCENT:
+		case TOKEN_AMPERSAND:
+		case TOKEN_PIPE:
+		case TOKEN_CARET:
+		case TOKEN_LEFT_SHIFT:
+		case TOKEN_RIGHT_SHIFT:
+			return true;
 
 		default: return false;
 	}
@@ -169,6 +182,11 @@ static ASTNode *parse_expression(Parser *p, int min_prec)
 			case TOKEN_ASTERISK: bin_type = AST_BINARY_MULTIPLY; break;
 			case TOKEN_FORWARD_SLASH: bin_type = AST_BINARY_DIVIDE; break;
 			case TOKEN_PERCENT: bin_type = AST_BINARY_REMAINDER; break;
+			case TOKEN_AMPERSAND: bin_type = AST_BINARY_BITWISE_AND; break;
+			case TOKEN_PIPE: bin_type = AST_BINARY_BITWISE_OR; break;
+			case TOKEN_CARET: bin_type = AST_BINARY_BITWISE_XOR; break;
+			case TOKEN_LEFT_SHIFT: bin_type = AST_BINARY_LEFT_SHIFT; break;
+			case TOKEN_RIGHT_SHIFT: bin_type = AST_BINARY_RIGHT_SHIFT; break;
 			default: UNIMPLEMENTED("unhandled token case in parse_expression");
 		}
 
@@ -203,7 +221,7 @@ static ASTNode *parse_factor(Parser *p)
 
 		case TOKEN_LPAREN:
 			advance(p);
-			ASTNode *inner_exp = parse_factor(p);
+			ASTNode *inner_exp = parse_expression(p, 0);
 			if (expect(p, TOKEN_RPAREN) == false) return NULL;
 			return inner_exp;
 

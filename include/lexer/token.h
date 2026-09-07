@@ -19,8 +19,13 @@ typedef enum TokenType{
 	TOKEN_ASTERISK,      // *
 	TOKEN_FORWARD_SLASH, // /
 	TOKEN_PERCENT,       // %
+	TOKEN_AMPERSAND,     // &
+	TOKEN_PIPE,          // |
+	TOKEN_CARET,         // ^
 
-	TOKEN_DECREMENT, // --
+	TOKEN_DECREMENT,   // --
+	TOKEN_LEFT_SHIFT,  // <<
+	TOKEN_RIGHT_SHIFT, // >>
 
 	// Misc
 	TOKEN_LPAREN,    // (

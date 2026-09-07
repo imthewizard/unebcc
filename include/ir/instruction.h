@@ -18,6 +18,7 @@ typedef enum IRInstructionType {
 	IR_RETURN,
 
 	IR_BITWISE_NOT,
+
 	IR_NEGATE,
 
 	IR_ADD,
@@ -25,6 +26,11 @@ typedef enum IRInstructionType {
 	IR_MULTIPLY,
 	IR_DIVIDE,
 	IR_REMAINDER,
+	IR_BITWISE_AND,
+	IR_BITWISE_OR,
+	IR_BITWISE_XOR,
+	IR_LEFT_SHIFT,
+	IR_RIGHT_SHIFT,
 }IRInstructionType;
 
 typedef struct IRInstruction {
