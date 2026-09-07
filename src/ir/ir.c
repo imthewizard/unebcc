@@ -17,6 +17,7 @@ void ir_print(IR *ir)
 	for (int i = 0; i < array_length(ir->functions); i++) {
 		function_print(&ir->functions[i]);
 	}
+	printf("\n");
 }
 
 void ir_init(IR *ir)

@@ -5,9 +5,12 @@
 
 typedef struct ArgsContext {
 	const char *filename;
-	bool print_tokens;
-	bool print_ast;
+	bool print_lexer;
+	bool print_parser;
 	bool print_ir;
+	bool print_machine_ir;
+
+	bool ok;
 }ArgsContext;
 
 ArgsContext args_parse(int argc, char **argv, int start);

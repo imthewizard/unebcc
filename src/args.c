@@ -6,22 +6,28 @@ ArgsContext args_parse(int argc, char **argv, int start)
 {
 	ArgsContext ctx = {
 		.filename = NULL,
-		.print_tokens = false,
-		.print_ast = false,
+		.print_lexer = false,
+		.print_parser = false,
 		.print_ir = false,
+		.print_machine_ir = false,
+		.ok = true,
 	};
 
 	for (int i = start; i < argc; i++) {
-		if (strcmp(argv[i], "--token") == 0) {
-			ctx.print_tokens = true;
+		if (strcmp(argv[i], "--lexer") == 0) {
+			ctx.print_lexer = true;
 			continue;
 		}
-		if (strcmp(argv[i], "--ast") == 0) {
-			ctx.print_ast = true;
+		if (strcmp(argv[i], "--parser") == 0) {
+			ctx.print_parser = true;
 			continue;
 		}
 		if (strcmp(argv[i], "--ir") == 0) {
 			ctx.print_ir = true;
+			continue;
+		}
+		if (strcmp(argv[i], "--machine-ir") == 0) {
+			ctx.print_machine_ir = true;
 			continue;
 		}
 
@@ -31,6 +37,7 @@ ArgsContext args_parse(int argc, char **argv, int start)
 		}
 
 		printf("Unknown option: %s\n", argv[i]);
+		ctx.ok = false;
 	}
 
 	return ctx;

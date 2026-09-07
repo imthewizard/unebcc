@@ -22,9 +22,10 @@ int main(int argc, char **argv)
 	}
 
 	ArgsContext ctx = args_parse(argc, argv, 1);
-
 	if (ctx.filename == NULL) {
 		puts("Missing file");
+		return EXIT_FAILURE;
+	} else if (ctx.ok == false) {
 		return EXIT_FAILURE;
 	}
 
@@ -41,9 +42,7 @@ int main(int argc, char **argv)
 	Lexer lexer;
 	lexer_init(&lexer, file_buffer, file_len);
 	lexer_scan_tokens(&lexer, &token_arr);
-
-	if (ctx.print_tokens) {
-		puts("\nTokens: ");
+	if (ctx.print_lexer) {
 		for (int i = 0; i < array_length(token_arr); i++) {
 			print_token(&token_arr[i]);
 		}
@@ -52,26 +51,22 @@ int main(int argc, char **argv)
 	Parser parser;
 	parser_init(&parser, token_arr);
 	parser_parse(&parser);
-
-	if (ctx.print_ast) {
-		puts("\nAST: ");
+	if (ctx.print_parser) {
 		ast_print(parser.ast, 0);
 	}
 
 	IR ir;
 	ir_init(&ir);
 	ir_generate(&ir, parser.ast);
-
 	if (ctx.print_ir) {
-		puts("\nIR: ");
 		ir_print(&ir);
 	}
 
 	x86_64Program prog = x86_64_program_init();
 	x86_64_create_prog(&ir, &prog);
-
-	// puts("\nProgram: ");
-	// x86_64_program_print(&prog);
+	if (ctx.print_machine_ir) {
+		x86_64_program_print(&prog);
+	}
 
 	puts("\nASM: ");
 	x86_64_emit(&prog);
@@ -92,9 +87,10 @@ void print_usage(const char *cmd)
 {
 	printf("%s [FILE] [FLAGS]\n", cmd);
 	puts("Flags:");
-	puts("--token: prints the lexed tokens");
-	puts("--ast: prints the AST");
+	puts("--lexer: prints the lexed tokens");
+	puts("--parser: prints the AST");
 	puts("--ir: prints the IR");
+	puts("--machine-ir: prints the machine IR");
 }
 
 void read_file(const char *filename, char **buffer, unsigned int *buffer_len)
