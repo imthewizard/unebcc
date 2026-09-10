@@ -4,6 +4,7 @@
 #include "backend/x86_64/x86_64.h"
 #include "utils/array.h"
 #include "utils/debug.h"
+#include "utils/os.h"
 
 static void print_setup(void);
 static void print_end(void);
@@ -33,8 +34,9 @@ static void print_setup(void)
 
 static void print_end(void)
 {
-	// TODO: linux only
+	#ifdef UNEBCC_LINUX
 	printf(".section .note.GNU-stack,\"\",@progbits");
+	#endif
 }
 
 static void print_operand(const x86_64Operand *op)
