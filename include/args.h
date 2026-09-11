@@ -9,6 +9,7 @@ typedef struct ArgsContext {
 	bool print_parser;
 	bool print_ir;
 	bool print_machine_ir;
+	bool print_asm;
 
 	bool ok;
 }ArgsContext;

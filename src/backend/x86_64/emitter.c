@@ -6,54 +6,54 @@
 #include "utils/debug.h"
 #include "utils/os.h"
 
-static void print_setup(void);
-static void print_end(void);
-static void print_operand(const x86_64Operand *op);
-static void emit_instruction(const x86_64Instruction *inst);
+static void print_setup(FILE *file);
+static void print_end(FILE *file);
+static void print_operand(FILE *file, const x86_64Operand *op);
+static void emit_instruction(FILE *file, const x86_64Instruction *inst);
 
-void x86_64_emit(const x86_64Program *prog)
+void x86_64_emit(FILE *file, const x86_64Program *prog)
 {
-	print_setup();
+	print_setup(file);
 	for (int i = 0; i < array_length(prog->functions); i++) {
 		x86_64Function *fn = &prog->functions[i];
 
-		printf("%s:\n", fn->name);
+		fprintf(file, "%s:\n", fn->name);
 		for (int j = 0; j < array_length(fn->instructions); j++) {
 			x86_64Instruction *inst = &fn->instructions[j];
-			emit_instruction(inst);
+			emit_instruction(file, inst);
 		}
 	}
-	print_end();
+	print_end(file);
 }
 
-static void print_setup(void)
+static void print_setup(FILE *file)
 {
-	printf(".intel_syntax noprefix\n");
-	printf(".globl main\n");
+	fprintf(file, ".intel_syntax noprefix\n");
+	fprintf(file, ".globl main\n");
 }
 
-static void print_end(void)
+static void print_end(FILE *file)
 {
 	#ifdef UNEBCC_LINUX
-	printf(".section .note.GNU-stack,\"\",@progbits");
+	fprintf(file, ".section .note.GNU-stack,\"\",@progbits\n");
 	#endif
 }
 
-static void print_operand(const x86_64Operand *op)
+static void print_operand(FILE *file, const x86_64Operand *op)
 {
 	switch (op->type) {
 		case X86_64_IMMEDIATE:
-			printf("%d", op->value.imm);
+			fprintf(file, "%d", op->value.imm);
 			break;
 		case X86_64_REGISTER:
-			printf("%s", x86_64_reg_to_str(op->value.reg));
+			fprintf(file, "%s", x86_64_reg_to_str(op->value.reg));
 			break;
 		case X86_64_STACK:
 			// spacing after operator
 			if (op->value.stack < 0) {
-				printf("dword ptr [rbp - %d]", -op->value.stack);
+				fprintf(file, "dword ptr [rbp - %d]", -op->value.stack);
 			} else {
-				printf("dword ptr [rbp + %d]", op->value.stack);
+				fprintf(file, "dword ptr [rbp + %d]", op->value.stack);
 			}
 			break;
 
@@ -61,27 +61,27 @@ static void print_operand(const x86_64Operand *op)
 	}
 }
 
-static void emit_instruction(const x86_64Instruction *inst)
+static void emit_instruction(FILE *file, const x86_64Instruction *inst)
 {
 	// Print instruction
 	switch (inst->mnemonic) {
-		case X86_64_MOV: printf("mov"); break;
-		case X86_64_RET: printf("ret"); break;
-		case X86_64_NEG: printf("neg"); break;
-		case X86_64_NOT: printf("not"); break;
+		case X86_64_MOV: fprintf(file, "mov"); break;
+		case X86_64_RET: fprintf(file, "ret"); break;
+		case X86_64_NEG: fprintf(file, "neg"); break;
+		case X86_64_NOT: fprintf(file, "not"); break;
 
-		case X86_64_ADD: printf("add"); break;
-		case X86_64_SUB: printf("sub"); break;
-		case X86_64_IMUL: printf("imul"); break;
-		case X86_64_AND: printf("and"); break;
-		case X86_64_OR: printf("or"); break;
-		case X86_64_XOR: printf("xor"); break;
-		case X86_64_SHL: printf("shl"); break;
-		case X86_64_SHR: printf("shr"); break;
+		case X86_64_ADD: fprintf(file, "add"); break;
+		case X86_64_SUB: fprintf(file, "sub"); break;
+		case X86_64_IMUL: fprintf(file, "imul"); break;
+		case X86_64_AND: fprintf(file, "and"); break;
+		case X86_64_OR: fprintf(file, "or"); break;
+		case X86_64_XOR: fprintf(file, "xor"); break;
+		case X86_64_SHL: fprintf(file, "shl"); break;
+		case X86_64_SHR: fprintf(file, "shr"); break;
 
-		case X86_64_IDIV: printf("idiv"); break;
+		case X86_64_IDIV: fprintf(file, "idiv"); break;
 
-		case X86_64_CDQ: printf("cdq"); break;
+		case X86_64_CDQ: fprintf(file, "cdq"); break;
 
 		// Pseudo
 		case X86_64_ALLOCATE_STACK:
@@ -95,15 +95,15 @@ static void emit_instruction(const x86_64Instruction *inst)
 	switch (inst->mnemonic) {
 		case X86_64_RET:
 		case X86_64_CDQ:
-			printf("\n");
+			fprintf(file, "\n");
 			return;
 
 		case X86_64_NEG:
 		case X86_64_NOT:
 		case X86_64_IDIV:
-			printf(" ");
-			print_operand(&inst->instruction.unary.src);
-			printf("\n");
+			fprintf(file, " ");
+			print_operand(file, &inst->instruction.unary.src);
+			fprintf(file, "\n");
 			return;
 
 		case X86_64_MOV:
@@ -115,61 +115,24 @@ static void emit_instruction(const x86_64Instruction *inst)
 		case X86_64_XOR:
 		case X86_64_SHL:
 		case X86_64_SHR:
-			printf(" ");
-			print_operand(&inst->instruction.binary.dst);
-			printf(", ");
-			print_operand(&inst->instruction.binary.src);
-			printf("\n");
+			fprintf(file, " ");
+			print_operand(file, &inst->instruction.binary.dst);
+			fprintf(file, ", ");
+			print_operand(file, &inst->instruction.binary.src);
+			fprintf(file, "\n");
 			return;
 
 		// Pseudo
 		case X86_64_ALLOCATE_STACK:
-			puts("push rbp");
-			puts("mov rbp, rsp");
-			printf("sub rsp, %d\n", inst->instruction.unary.src.value.stack);
+			fputs("push rbp\n", file);
+			fputs("mov rbp, rsp\n", file);
+			fprintf(file, "sub rsp, %d\n", inst->instruction.unary.src.value.stack);
 			return;
 		case X86_64_DEALLOCATE_STACK:
-			puts("mov rsp, rbp");
-			puts("pop rbp");
+			fputs("mov rsp, rbp\n", file);
+			fputs("pop rbp\n", file);
 			return;
 
 		default: UNIMPLEMENTED("Unhandled mnemonic case");
 	}
-
-	// switch (inst->mnemonic) {
-	// 	case X86_64_MOV:
-	// 		printf("mov ");
-	// 		print_operand(&inst->instruction.binary.dst);
-	// 		printf(", ");
-	// 		print_operand(&inst->instruction.binary.src);
-	// 		printf("\n");
-	// 		break;
-	//
-	// 	case X86_64_NEG:
-	// 		printf("neg ");
-	// 		print_operand(&inst->instruction.unary.src);
-	// 		printf("\n");
-	// 		break;
-	// 	case X86_64_NOT:
-	// 		printf("not ");
-	// 		print_operand(&inst->instruction.unary.src);
-	// 		printf("\n");
-	// 		break;
-	//
-	// 	case X86_64_RET:
-	// 		puts("ret");
-	// 		break;
-	//
-	// 	case X86_64_ALLOCATE_STACK:
-	// 		puts("push rbp");
-	// 		puts("mov rbp, rsp");
-	// 		printf("sub rsp, %d\n", inst->instruction.unary.src.value.stack);
-	// 		break;
-	// 	case X86_64_DEALLOCATE_STACK:
-	// 		puts("mov rsp, rbp");
-	// 		puts("pop rbp");
-	// 		break;
-	//
-	// 	default: UNIMPLEMENTED("Unhandled mnemonic case");
-	// }
 }

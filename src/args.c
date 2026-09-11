@@ -10,6 +10,8 @@ ArgsContext args_parse(int argc, char **argv, int start)
 		.print_parser = false,
 		.print_ir = false,
 		.print_machine_ir = false,
+		.print_asm = false,
+
 		.ok = true,
 	};
 
@@ -28,6 +30,10 @@ ArgsContext args_parse(int argc, char **argv, int start)
 		}
 		if (strcmp(argv[i], "--machine-ir") == 0) {
 			ctx.print_machine_ir = true;
+			continue;
+		}
+		if (strcmp(argv[i], "--print-asm") == 0) {
+			ctx.print_asm = true;
 			continue;
 		}
 

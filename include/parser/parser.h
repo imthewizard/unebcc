@@ -5,14 +5,14 @@
 #include "lexer/token.h"
 
 typedef struct Parser {
-	Token *tokens;
+	const Token *tokens;
 	unsigned int next_token;
 
 	ASTNode *ast;
 }Parser;
 
 // Initializes a parser with the specified token array
-void parser_init(Parser *p, Token *token_array);
+void parser_init(Parser *p, const Token *token_array);
 // Deinitializes the parser
 void parser_deinit(Parser *p);
 // Parse everything

@@ -18,9 +18,9 @@ static ASTNode *parse_factor(Parser *p);
 // If it isn't, an error message will be printed.
 static bool expect(Parser *p, TokenType token_type);
 // Returns the most recently consumed token
-static Token* previous(Parser *p);
+static const Token* previous(Parser *p);
 // Returns the next token
-static Token* peek(Parser *p);
+static const Token* peek(Parser *p);
 // Advances the parser
 static void advance(Parser *p);
 // Gets the precedence of a binary operator token
@@ -29,7 +29,7 @@ static int precedence(TokenType token_type);
 static bool is_binary_operator(TokenType token_type);
 
 
-void parser_init(Parser *p, Token *token_array)
+void parser_init(Parser *p, const Token *token_array)
 {
 	ASSERT(token_array != NULL, "token_array must be non-null, use the lexer first");
 
@@ -60,14 +60,14 @@ static bool expect(Parser *p, TokenType token_type)
 	return false;
 }
 
-static Token* previous(Parser *p)
+static const Token* previous(Parser *p)
 {
 	ASSERT(p->next_token > 0, "no previous token");
 
 	return &p->tokens[p->next_token - 1];
 }
 
-static Token* peek(Parser *p)
+static const Token* peek(Parser *p)
 {
 	return &p->tokens[p->next_token];
 }
@@ -163,8 +163,7 @@ static ASTNode *parse_statement(Parser *p)
 static ASTNode *parse_expression(Parser *p, int min_prec)
 {
 	ASTNode *left = parse_factor(p);
-	Token *next = peek(p);
-
+	const Token *next = peek(p);
 
 	while (1) {
 		if (!is_binary_operator(next->type)) return left;
@@ -203,7 +202,7 @@ static ASTNode *parse_factor(Parser *p)
 	switch(next->type) {
 		case TOKEN_INTEGER_LITERAL:{
 			if (expect(p, TOKEN_INTEGER_LITERAL) == false) return NULL;
-			Token *prev = previous(p);
+			const Token *prev = previous(p);
 			int value = atoi(prev->literal);
 			return ast_int_literal(value);
 		}

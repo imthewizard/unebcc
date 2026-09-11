@@ -3,13 +3,8 @@
 #include <string.h>
 
 #include "args.h"
-#include "lexer/lexer.h"
-#include "parser/parser.h"
-#include "ir/ir.h"
-#include "backend/x86_64/gen.h"
-#include "backend/x86_64/emitter.h"
 
-#include "utils/array.h"
+#include "driver/driver.h"
 
 void print_usage(const char *cmd);
 void read_file(const char *filename, char **buffer, unsigned int *buffer_len);
@@ -38,47 +33,8 @@ int main(int argc, char **argv)
 		return EXIT_FAILURE;
 	}
 
-	Token *token_arr = array_create(token_arr, 1);
-	Lexer lexer;
-	lexer_init(&lexer, file_buffer, file_len);
-	lexer_scan_tokens(&lexer, &token_arr);
-	if (ctx.print_lexer) {
-		for (int i = 0; i < array_length(token_arr); i++) {
-			print_token(&token_arr[i]);
-		}
-	}
+	driver_start(&ctx, file_buffer, file_len);
 
-	Parser parser;
-	parser_init(&parser, token_arr);
-	parser_parse(&parser);
-	if (ctx.print_parser) {
-		ast_print(parser.ast, 0);
-	}
-
-	IR ir;
-	ir_init(&ir);
-	ir_generate(&ir, parser.ast);
-	if (ctx.print_ir) {
-		ir_print(&ir);
-	}
-
-	x86_64Program prog = x86_64_program_init();
-	x86_64_create_prog(&ir, &prog);
-	if (ctx.print_machine_ir) {
-		x86_64_program_print(&prog);
-	}
-
-	puts("\nASM: ");
-	x86_64_emit(&prog);
-
-	x86_64_program_deinit(&prog);
-	ir_deinit(&ir);
-	parser_deinit(&parser);
-	for (int i = 0; i < array_length(token_arr); i++) {
-		if (token_arr[i].literal != NULL)
-			free(token_arr[i].literal);
-	}
-	array_free(token_arr);
 	free(file_buffer);
 	return EXIT_SUCCESS;
 }
@@ -91,6 +47,7 @@ void print_usage(const char *cmd)
 	puts("--parser: prints the AST");
 	puts("--ir: prints the IR");
 	puts("--machine-ir: prints the machine IR");
+	puts("--print-asm: prints the assembly output");
 }
 
 void read_file(const char *filename, char **buffer, unsigned int *buffer_len)
