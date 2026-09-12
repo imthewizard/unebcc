@@ -6,65 +6,34 @@
 
 #include "driver/driver.h"
 
-void print_usage(const char *cmd);
-void read_file(const char *filename, char **buffer, unsigned int *buffer_len);
-
 int main(int argc, char **argv)
 {
+	ArgsContext ctx = args_init();
+
+	args_add_arg(&ctx, "lex", "Runs the lexer and stops before parsing", false);
+	args_add_arg(&ctx, "parse", "Runs the parser and stops before assembly generation", false);
+	args_add_arg(&ctx, "codegen", "Lexes, parses and generates assembly, but doesn't save it to a file", false);
+	args_add_arg(&ctx, "print", "Expects 'val' to be lexer/parser/ir/machine-ir/asm. Will print the output to stdout", true);
+
 	if (argc < 2){
-		print_usage(argv[0]);
+		printf("%s [FILE] [FLAGS]\n", argv[0]);
+		args_print_help(&ctx);
+		args_deinit(&ctx);
 		return EXIT_FAILURE;
 	}
 
-	ArgsContext ctx = args_parse(argc, argv, 1);
+	args_parse(&ctx, argc, argv, 1);
 	if (ctx.filename == NULL) {
 		puts("Missing file");
+		args_deinit(&ctx);
 		return EXIT_FAILURE;
 	} else if (ctx.ok == false) {
+		args_deinit(&ctx);
 		return EXIT_FAILURE;
 	}
 
-	char *file_buffer = NULL;
-	unsigned int file_len;
-	read_file(ctx.filename, &file_buffer, &file_len);
+	driver_start(&ctx);
 
-	if (file_buffer == NULL) {
-		printf("File \"%s\" does not exist", ctx.filename);
-		return EXIT_FAILURE;
-	}
-
-	driver_start(&ctx, file_buffer, file_len);
-
-	free(file_buffer);
+	args_deinit(&ctx);
 	return EXIT_SUCCESS;
-}
-
-void print_usage(const char *cmd)
-{
-	printf("%s [FILE] [FLAGS]\n", cmd);
-	puts("Flags:");
-	puts("--lexer: prints the lexed tokens");
-	puts("--parser: prints the AST");
-	puts("--ir: prints the IR");
-	puts("--machine-ir: prints the machine IR");
-	puts("--print-asm: prints the assembly output");
-}
-
-void read_file(const char *filename, char **buffer, unsigned int *buffer_len)
-{
-	FILE *file = fopen(filename, "r");
-	if (file == NULL){
-		return;
-	}
-
-	fseek(file, 0, SEEK_END);
-	int file_size = ftell(file);
-	fseek(file, 0, SEEK_SET);
-
-	*buffer = malloc(sizeof(char) * (file_size + 1));
-	fread(*buffer, sizeof(char), file_size, file);
-	(*buffer)[file_size] = '\0';
-
-	*buffer_len = file_size;
-	fclose(file);
 }

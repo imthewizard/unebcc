@@ -37,7 +37,7 @@ static const char* token_type_str[] = {
 	[TOKEN_INVALID] = "INVALID",
 };
 
-void print_token(Token *token)
+void print_token(const Token *token)
 {
 	printf("%s", token_type_str[token->type]);
 	if (token->literal == NULL) {

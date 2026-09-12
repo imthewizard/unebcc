@@ -11,11 +11,11 @@
 // Increments lexer->pos to skip whitespace, if needed
 static void skip_whitespace(Lexer *lexer);
 // Checks if there are more chars to be read
-static bool is_at_end(Lexer *lexer);
+static bool is_at_end(const Lexer *lexer);
 // Returns the next character in the buffer and advance
 static char consume(Lexer *lexer);
 // Returns the next character in the buffer, does not advance
-static char peek(Lexer *lexer);
+static char peek(const Lexer *lexer);
 // Advances to the next char
 static void advance(Lexer *lexer);
 // Scans the string buffer and return a single token
@@ -26,21 +26,32 @@ static Token handle_keyword_identifier(Lexer *lexer, unsigned int start_pos);
 
 void lexer_init(Lexer *lexer, const char *buffer, unsigned int buffer_len)
 {
+	lexer->token_array = array_create(lexer->token_array, 16);
 	lexer->buffer = buffer;
 	lexer->len = buffer_len;
 	lexer->next_pos = 0;
+	lexer->had_error = false;
 }
 
-#include <stdio.h>
-void lexer_scan_tokens(Lexer *lexer, Token **token_array)
+void lexer_deinit(Lexer *lexer)
 {
+	Token *token_array = lexer->token_array;
+	for (int i = 0; i < array_length(token_array); i++) {
+		if (token_array[i].literal != NULL)
+			free(token_array[i].literal);
+	}
+	array_free(token_array);
+}
+
+void lexer_scan_tokens(Lexer *lexer)
+{
+	ASSERT(lexer->token_array != NULL, "lexer token array is invalid");
 	ASSERT(lexer->buffer != NULL, "lexer buffer is invalid");
-	ASSERT(*token_array != NULL, "token_array is invalid");
 
 	Token token;
 	do {
 		token = scan_next_token(lexer);
-		array_push(*token_array, token);
+		array_push(lexer->token_array, token);
 	} while (token.type != TOKEN_EOF);
 }
 
@@ -102,6 +113,8 @@ static Token scan_next_token(Lexer *lexer)
 		return handle_keyword_identifier(lexer, start_position);
 	}
 
+	printf("Lexer error: invalid character %c\n", c);
+	lexer->had_error = true;
 	return (Token){TOKEN_INVALID, NULL};
 }
 
@@ -112,7 +125,7 @@ static void skip_whitespace(Lexer *lexer)
 	}
 }
 
-static bool is_at_end(Lexer *lexer)
+static bool is_at_end(const Lexer *lexer)
 {
 	return (peek(lexer) == '\0');
 }
@@ -122,7 +135,7 @@ static char consume(Lexer *lexer)
 	return lexer->buffer[lexer->next_pos++];
 }
 
-static char peek(Lexer *lexer)
+static char peek(const Lexer *lexer)
 {
 	return lexer->buffer[lexer->next_pos];
 }

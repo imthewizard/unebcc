@@ -1,6 +1,8 @@
 #ifndef UNEBCC_PARSER_H
 #define UNEBCC_PARSER_H
 
+#include <stdbool.h>
+
 #include "ast.h"
 #include "lexer/token.h"
 
@@ -9,6 +11,8 @@ typedef struct Parser {
 	unsigned int next_token;
 
 	ASTNode *ast;
+
+	bool had_error;
 }Parser;
 
 // Initializes a parser with the specified token array

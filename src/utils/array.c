@@ -17,6 +17,19 @@ void *_array_init(int element_size, int array_size)
 	return (char*)arr + sizeof(_ArrayHeader);
 }
 
+void *_array_init_zeroes(int element_size, int array_size)
+{
+	ASSERT(array_size > 0, "invalid array size");
+
+	void *arr = calloc((element_size * array_size), sizeof(_ArrayHeader));
+
+	_ArrayHeader *header = (_ArrayHeader*)arr;
+	header->elements = array_size;
+	header->max_elements = array_size;
+
+	return (char*)arr + sizeof(_ArrayHeader);
+}
+
 void *_array_grow(void *arr, int element_size)
 {
 	_ArrayHeader *header = _ARRAY_HEADER(arr);

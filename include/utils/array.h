@@ -12,12 +12,14 @@ typedef struct _ArrayHeader {
 } _ArrayHeader;
 
 void *_array_init(int element_size, int array_size);
+void *_array_init_zeroes(int element_size, int array_size);
 void *_array_grow(void *arr, int element_size);
 
 #define _ARRAY_HEADER(arr) ((_ArrayHeader*) ((char*)arr - sizeof(_ArrayHeader)))
 #define _ARRAY_NEED_GROW(arr) ( _ARRAY_HEADER(arr)->elements + 1 > _ARRAY_HEADER(arr)->max_elements )
 
 #define array_create(arr, size) (_array_init(sizeof(*arr), size))
+#define array_create_zeroes(arr, size) (_array_init_zeroes(sizeof(*arr), size))
 #define array_length(arr) ( _ARRAY_HEADER(arr)->elements )
 #define array_max_length(arr) ( _ARRAY_HEADER(arr)->max_elements )
 #define array_free(arr) ( free(_ARRAY_HEADER(arr)) )
@@ -40,5 +42,8 @@ void *_array_grow(void *arr, int element_size);
 		(arr)[(pos)] = (element); \
 		_ARRAY_HEADER(arr)->elements++; \
 	} while(0)
+
+#define array_set(arr, element, pos) \
+	( (arr)[(pos)] = (element) )
 
 #endif // UNEBCC_DS_ARRAY_H

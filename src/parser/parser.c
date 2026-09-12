@@ -36,6 +36,7 @@ void parser_init(Parser *p, const Token *token_array)
 	p->tokens = token_array;
 	p->next_token = 0;
 	p->ast = NULL;
+	p->had_error = false;
 }
 
 void parser_deinit(Parser *p)
@@ -57,6 +58,7 @@ static bool expect(Parser *p, TokenType token_type)
 		return true;
 	}
 	fprintf(stderr, "Syntax error\n");
+	p->had_error = true;
 	return false;
 }
 
@@ -226,6 +228,7 @@ static ASTNode *parse_factor(Parser *p)
 
 		default:
 			fprintf(stderr, "Malformed factor\n");
+			p->had_error = true;
 			return NULL;
 	}
 }
