@@ -15,10 +15,15 @@
 #include "utils/array.h"
 #include "utils/file.h"
 
-// Lexes a buffer and returns the lexer an array of tokens
+// Main compile pass: lexer, parser, and irs
+static x86_64Program compile(const ArgsContext *ctx);
+// Assembles the program
+static void assemble(const ArgsContext *ctx, const x86_64Program *program);
+
+// Lexes a buffer
 static Lexer lex(const char *buffer, unsigned int buffer_len, bool print);
-// Parses an array of tokens and creates an AST
-static Parser parse(const Token *token_array, bool print);
+// Parses the lexer's array of tokens and creates an AST
+static Parser parse(const Lexer *lexer, bool print);
 // Generates an IR from the AST
 static IR generate_ir(const Parser *parser, bool print);
 // Generates a x86_64 based IR from the general IR
@@ -28,11 +33,18 @@ static File emit_assembly(const char *filename, const x86_64Program *prog, bool 
 
 void driver_start(const ArgsContext *ctx)
 {
+	x86_64Program program = compile(ctx);
+	assemble(ctx, &program);
+
+	x86_64_program_deinit(&program);
+}
+
+static x86_64Program compile(const ArgsContext *ctx)
+{
 	const bool print_lexer      = args_cmp_value(ctx, "print", "lexer");
 	const bool print_parser     = args_cmp_value(ctx, "print", "parser");
 	const bool print_ir         = args_cmp_value(ctx, "print", "ir");
 	const bool print_machine_ir = args_cmp_value(ctx, "print", "machine-ir");
-	const bool print_asm        = args_cmp_value(ctx, "print", "asm");
 
 	const bool only_lex     = args_has(ctx, "lex");
 	const bool only_parse   = args_has(ctx, "parse");
@@ -51,7 +63,7 @@ void driver_start(const ArgsContext *ctx)
 
 	free(file_buffer);
 
-	Parser parser = parse(lexer.token_array, print_parser);
+	Parser parser = parse(&lexer, print_parser);
 	if (parser.had_error) exit(EXIT_FAILURE);
 	if (only_parse) exit(EXIT_SUCCESS);
 
@@ -60,9 +72,20 @@ void driver_start(const ArgsContext *ctx)
 	x86_64Program prog = generate_machine_ir(&ir, print_machine_ir);
 	if (only_codegen) exit(EXIT_SUCCESS);
 
+	ir_deinit(&ir);
+	parser_deinit(&parser);
+	lexer_deinit(&lexer);
+
+	return prog;
+}
+
+static void assemble(const ArgsContext *ctx, const x86_64Program *program)
+{
+	const bool print_asm = args_cmp_value(ctx, "print", "asm");
+
 	char *filename_no_ext = filename_without_extension(ctx->filename);
 	char *asm_filename = filename_extension(filename_no_ext, ".s");
-	File temp = emit_assembly(asm_filename, &prog, print_asm);
+	File temp = emit_assembly(asm_filename, program, print_asm);
 	// Close the file now so gcc can read it correctly
 	file_close(&temp);
 
@@ -72,11 +95,6 @@ void driver_start(const ArgsContext *ctx)
 
 	free(asm_filename);
 	free(filename_no_ext);
-
-	x86_64_program_deinit(&prog);
-	ir_deinit(&ir);
-	parser_deinit(&parser);
-	lexer_deinit(&lexer);
 }
 
 static Lexer lex(const char *buffer, unsigned int buffer_len, bool print)
@@ -93,10 +111,10 @@ static Lexer lex(const char *buffer, unsigned int buffer_len, bool print)
 	return lexer;
 }
 
-static Parser parse(const Token *token_array, bool print)
+static Parser parse(const Lexer *lexer, bool print)
 {
 	Parser parser;
-	parser_init(&parser, token_array);
+	parser_init(&parser, lexer->token_array);
 	parser_parse(&parser);
 	if (print) {
 		ast_print(parser.ast, 0);
