@@ -10,6 +10,8 @@
 
 // Increments lexer->pos to skip whitespace, if needed
 static void skip_whitespace(Lexer *lexer);
+// Increments lexer->pos to skip comments, if needed
+static void skip_comments(Lexer *lexer);
 // Checks if there are more chars to be read
 static bool is_at_end(const Lexer *lexer);
 // Returns the next character in the buffer and advance
@@ -59,6 +61,7 @@ static Token scan_next_token(Lexer *lexer)
 {
 	// Skip indentation/spaces
 	skip_whitespace(lexer);
+	skip_comments(lexer);
 
 	if (is_at_end(lexer)) {
 		return (Token){TOKEN_EOF, NULL};
@@ -122,6 +125,17 @@ static void skip_whitespace(Lexer *lexer)
 {
 	while(isspace(lexer->buffer[lexer->next_pos])){
 		lexer->next_pos++;
+	}
+}
+
+static void skip_comments(Lexer *lexer)
+{
+	if (lexer->buffer[lexer->next_pos] == '/' &&
+		lexer->buffer[lexer->next_pos + 1] == '/') {
+		lexer->next_pos += 2;
+		while (lexer->buffer[lexer->next_pos] != '\n')
+			lexer->next_pos++;
+		skip_whitespace(lexer);
 	}
 }
 
