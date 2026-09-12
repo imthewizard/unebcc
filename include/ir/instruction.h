@@ -75,8 +75,8 @@ IRInstruction ir_instruction_binary(IRInstructionType type, const IROperand *lhs
 		.src2 = {.type = (src2_type), .value = (val2)}, \
 	};
 
-#define IR_INSTRUCTION_RETURN(temp_id) \
-	_IR_INSTRUCTION_NO_DST((IR_RETURN), (IR_OPERAND_TEMP), (temp_id))
+#define IR_INSTRUCTION_RETURN(operand) \
+	_IR_INSTRUCTION_NO_DST((IR_RETURN), (operand).type, (operand).value)
 
 #define IR_INSTRUCTION_UNARY_TEMP(instruction, temp_id) \
 	_IR_INSTRUCTION_UNARY((instruction), (IR_OPERAND_TEMP), (temp_id))

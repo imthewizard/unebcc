@@ -59,7 +59,7 @@ static void generate_statement(IRBasicBlock *bb, ASTNode *stmt)
 	switch (stmt->type) {
 		case AST_RETURN_STATEMENT:{
 			IROperand tmp = generate_expression(bb, stmt->node_value.return_statement.expression);
-			IRInstruction inst = IR_INSTRUCTION_RETURN(tmp.value);
+			IRInstruction inst = IR_INSTRUCTION_RETURN(tmp);
 			array_push(bb->instructions, inst);
 			return;
 		}

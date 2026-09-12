@@ -126,6 +126,8 @@ static ASTNode *parse_program(Parser *p)
 	ASTNode *function = parse_function(p);
 	if (function == NULL) return NULL;
 
+	if (expect(p, TOKEN_EOF) == false) return NULL;
+
 	return ast_program(function);
 }
 
