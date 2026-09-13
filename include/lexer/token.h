@@ -22,10 +22,20 @@ typedef enum TokenType{
 	TOKEN_AMPERSAND,     // &
 	TOKEN_PIPE,          // |
 	TOKEN_CARET,         // ^
+	TOKEN_EQUAL,         // =
+	TOKEN_EXCLAMATION,   // !
+	TOKEN_LESS_THAN,     // <
+	TOKEN_GREATER_THAN,  // >
 
-	TOKEN_DECREMENT,   // --
-	TOKEN_LEFT_SHIFT,  // <<
-	TOKEN_RIGHT_SHIFT, // >>
+	TOKEN_DECREMENT,     // --
+	TOKEN_LEFT_SHIFT,    // <<
+	TOKEN_RIGHT_SHIFT,   // >>
+	TOKEN_LOGICAL_AND,   // &&
+	TOKEN_LOGICAL_OR,    // ||
+	TOKEN_LOGICAL_EQUAL, // ==
+	TOKEN_NOT_EQUAL,     // !=
+	TOKEN_LESS_EQUAL,    // <=
+	TOKEN_GREATER_EQUAL, // >=
 
 	// Misc
 	TOKEN_LPAREN,    // (

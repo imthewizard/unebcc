@@ -79,36 +79,67 @@ static Token scan_next_token(Lexer *lexer)
 
 	// Single characters
 	switch(c) {
-		case('~'): return (Token){TOKEN_TILDE, NULL};
 		case('-'):
-		   if (peek(lexer) != '-') {
-			   return (Token){TOKEN_MINUS, NULL};
-		   } else {
-			   advance(lexer);
-			   return (Token){TOKEN_DECREMENT, NULL};
+			if (peek(lexer) == '-') {
+				advance(lexer);
+				return (Token){TOKEN_DECREMENT, NULL};
+			} else {
+				return (Token){TOKEN_MINUS, NULL};
 			}
-		   break;
-		case('+'): return (Token){TOKEN_PLUS, NULL};
-		case('*'): return (Token){TOKEN_ASTERISK, NULL};
-		case('/'): return (Token){TOKEN_FORWARD_SLASH, NULL};
-		case('%'): return (Token){TOKEN_PERCENT, NULL};
-		case('&'): return (Token){TOKEN_AMPERSAND, NULL};
-		case('|'): return (Token){TOKEN_PIPE, NULL};
-		case('^'): return (Token){TOKEN_CARET, NULL};
-
+		case('&'):
+			if (peek(lexer) == '&') {
+				advance(lexer);
+				return (Token){TOKEN_LOGICAL_AND, NULL};
+			} else {
+				return (Token){TOKEN_AMPERSAND, NULL};
+			}
+		case('|'):
+			if (peek(lexer) == '|') {
+				advance(lexer);
+				return (Token){TOKEN_LOGICAL_OR, NULL};
+			} else {
+				return (Token){TOKEN_PIPE, NULL};
+			}
+		case('='):
+			if (peek(lexer) == '=') {
+				advance(lexer);
+				return (Token){TOKEN_LOGICAL_EQUAL, NULL};
+			} else {
+				return (Token){TOKEN_EQUAL, NULL};
+			}
 		case('<'):
 			if (peek(lexer) == '<') {
 				advance(lexer);
 				return (Token){TOKEN_LEFT_SHIFT, NULL};
 			}
-			break;
+			if (peek(lexer) == '=') {
+				advance(lexer);
+				return (Token){TOKEN_LESS_EQUAL, NULL};
+			}
+			return (Token){TOKEN_LESS_THAN, NULL};
 		case('>'):
 			if (peek(lexer) == '>') {
 				advance(lexer);
 				return (Token){TOKEN_RIGHT_SHIFT, NULL};
 			}
-			break;
+			if (peek(lexer) == '=') {
+				advance(lexer);
+				return (Token){TOKEN_GREATER_EQUAL, NULL};
+			}
+			return (Token){TOKEN_GREATER_THAN, NULL};
+		case('!'):
+			if (peek(lexer) == '=') {
+				advance(lexer);
+				return (Token){TOKEN_NOT_EQUAL, NULL};
+			}
+			return (Token){TOKEN_EXCLAMATION, NULL};
 
+		case('+'): return (Token){TOKEN_PLUS, NULL};
+		case('*'): return (Token){TOKEN_ASTERISK, NULL};
+		case('/'): return (Token){TOKEN_FORWARD_SLASH, NULL};
+		case('%'): return (Token){TOKEN_PERCENT, NULL};
+		case('~'): return (Token){TOKEN_TILDE, NULL};
+		case('^'): return (Token){TOKEN_CARET, NULL};
 		case('('): return (Token){TOKEN_LPAREN, NULL};
 		case(')'): return (Token){TOKEN_RPAREN, NULL};
 		case('{'): return (Token){TOKEN_LBRACE, NULL};
