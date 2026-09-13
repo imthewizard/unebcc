@@ -42,7 +42,7 @@ void file_remove(File *file)
 	remove(file->filename);
 }
 
-void file_to_buffer(File *file, char **buffer, unsigned int *buffer_len)
+void file_to_buffer(const File *file, char **buffer, unsigned int *buffer_len)
 {
 	FILE *fp = file->fp;
 

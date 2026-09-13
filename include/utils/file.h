@@ -17,7 +17,7 @@ void file_close(File *file);
 // Removes a file
 void file_remove(File *file);
 // Reads a file contents and size.
-void file_to_buffer(File *file, char **buffer, unsigned int *buffer_len);
+void file_to_buffer(const File *file, char **buffer, unsigned int *buffer_len);
 
 // Returns the same filename but without the extension. Must be freed later
 char *filename_without_extension(const char *filename);

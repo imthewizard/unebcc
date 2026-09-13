@@ -10,13 +10,16 @@
 #include "backend/x86_64/gen.h"
 #include "backend/x86_64/emitter.h"
 #include "assembler/assembler.h"
+#include "preprocessor/preprocessor.h"
 
 #include "args.h"
 #include "utils/array.h"
 #include "utils/file.h"
 
+// Runs the preprocessing stage on the input and returns the preprocessed file
+static File preprocess(const ArgsContext *ctx);
 // Main compile pass: lexer, parser, and irs
-static x86_64Program compile(const ArgsContext *ctx);
+static x86_64Program compile(const ArgsContext *ctx, const File *input);
 // Assembles the program
 static void assemble(const ArgsContext *ctx, const x86_64Program *program);
 
@@ -33,13 +36,32 @@ static File emit_assembly(const char *filename, const x86_64Program *prog, bool 
 
 void driver_start(const ArgsContext *ctx)
 {
-	x86_64Program program = compile(ctx);
+	File preprocessed = preprocess(ctx);
+
+	x86_64Program program = compile(ctx, &preprocessed);
+
+	file_close(&preprocessed);
+	file_remove(&preprocessed);
+
 	assemble(ctx, &program);
 
 	x86_64_program_deinit(&program);
 }
 
-static x86_64Program compile(const ArgsContext *ctx)
+static File preprocess(const ArgsContext *ctx)
+{
+	char *filename_no_ext = filename_without_extension(ctx->filename);
+	char *preprocessed_name = filename_extension(filename_no_ext, ".i");
+	preprocessor_preprocess_gcc(ctx->filename, preprocessed_name);
+
+	File temp = file_open(preprocessed_name);
+
+	free(preprocessed_name);
+	free(filename_no_ext);
+	return temp;
+}
+
+static x86_64Program compile(const ArgsContext *ctx, const File *input)
 {
 	const bool print_lexer      = args_cmp_value(ctx, "print", "lexer");
 	const bool print_parser     = args_cmp_value(ctx, "print", "parser");
@@ -50,10 +72,9 @@ static x86_64Program compile(const ArgsContext *ctx)
 	const bool only_parse   = args_has(ctx, "parse");
 	const bool only_codegen = args_has(ctx, "codegen");
 
-	File file = file_open(ctx->filename);
 	char *file_buffer;
 	unsigned int buffer_len;
-	file_to_buffer(&file, &file_buffer, &buffer_len);
+	file_to_buffer(input, &file_buffer, &buffer_len);
 
 	Lexer lexer = lex(file_buffer, buffer_len, print_lexer);
 	if (only_lex) {
