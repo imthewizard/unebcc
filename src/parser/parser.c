@@ -85,19 +85,31 @@ static void advance(Parser *p)
 static int precedence(TokenType token_type)
 {
 	switch (token_type) {
-		case TOKEN_PIPE: return 1;
-		case TOKEN_CARET: return 2;
-		case TOKEN_AMPERSAND: return 3;
+		case TOKEN_LOGICAL_OR: return 5;
+
+		case TOKEN_LOGICAL_AND: return 10;
+
+		case TOKEN_PIPE: return 11;
+		case TOKEN_CARET: return 12;
+		case TOKEN_AMPERSAND: return 13;
+
+		case TOKEN_NOT_EQUAL:
+		case TOKEN_LOGICAL_EQUAL: return 30;
+
+		case TOKEN_GREATER_EQUAL:
+		case TOKEN_GREATER_THAN:
+		case TOKEN_LESS_EQUAL:
+		case TOKEN_LESS_THAN: return 35;
 
 		case TOKEN_LEFT_SHIFT:
-		case TOKEN_RIGHT_SHIFT: return 4;
+		case TOKEN_RIGHT_SHIFT: return 40;
 
-		case TOKEN_PLUS:
-		case TOKEN_MINUS: return 5;
+		case TOKEN_MINUS:
+		case TOKEN_PLUS: return 45;
 
-		case TOKEN_ASTERISK:
+		case TOKEN_PERCENT:
 		case TOKEN_FORWARD_SLASH:
-		case TOKEN_PERCENT: return 6;
+		case TOKEN_ASTERISK: return 50;
 
 		default: UNIMPLEMENTED("unhandled token type in precedence");
 	}
@@ -116,6 +128,14 @@ static bool is_binary_operator(TokenType token_type)
 		case TOKEN_CARET:
 		case TOKEN_LEFT_SHIFT:
 		case TOKEN_RIGHT_SHIFT:
+		case TOKEN_LESS_THAN:
+		case TOKEN_GREATER_THAN:
+		case TOKEN_LOGICAL_AND:
+		case TOKEN_LOGICAL_OR:
+		case TOKEN_LOGICAL_EQUAL:
+		case TOKEN_NOT_EQUAL:
+		case TOKEN_LESS_EQUAL:
+		case TOKEN_GREATER_EQUAL:
 			return true;
 
 		default: return false;
@@ -193,6 +213,14 @@ static ASTNode *parse_expression(Parser *p, int min_prec)
 			case TOKEN_CARET: bin_type = AST_BINARY_BITWISE_XOR; break;
 			case TOKEN_LEFT_SHIFT: bin_type = AST_BINARY_LEFT_SHIFT; break;
 			case TOKEN_RIGHT_SHIFT: bin_type = AST_BINARY_RIGHT_SHIFT; break;
+			case TOKEN_LOGICAL_AND: bin_type = AST_BINARY_LOGICAL_AND; break;
+			case TOKEN_LOGICAL_OR: bin_type = AST_BINARY_LOGICAL_OR; break;
+			case TOKEN_LOGICAL_EQUAL: bin_type = AST_BINARY_LOGICAL_EQUAL; break;
+			case TOKEN_NOT_EQUAL: bin_type = AST_BINARY_LOGICAL_NOT_EQUAL; break;
+			case TOKEN_LESS_THAN: bin_type = AST_BINARY_LOGICAL_LESS_THAN; break;
+			case TOKEN_LESS_EQUAL: bin_type = AST_BINARY_LOGICAL_LESS_EQUAL; break;
+			case TOKEN_GREATER_THAN: bin_type = AST_BINARY_LOGICAL_GREATER_THAN; break;
+			case TOKEN_GREATER_EQUAL: bin_type = AST_BINARY_LOGICAL_GREATER_EQUAL; break;
 			default: UNIMPLEMENTED("unhandled token case in parse_expression");
 		}
 
@@ -223,6 +251,11 @@ static ASTNode *parse_factor(Parser *p)
 			advance(p);
 			ASTNode *inner_exp = parse_factor(p);
 			return ast_unary(AST_UNARY_NEGATE, inner_exp);
+		}
+		case TOKEN_EXCLAMATION:{
+			advance(p);
+			ASTNode *inner_exp = parse_factor(p);
+			return ast_unary(AST_UNARY_LOGICAL_NOT, inner_exp);
 		}
 
 		case TOKEN_LPAREN:
