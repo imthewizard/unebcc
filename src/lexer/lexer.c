@@ -130,12 +130,13 @@ static void skip_whitespace(Lexer *lexer)
 
 static void skip_comments(Lexer *lexer)
 {
+	// TODO: refactor this
 	if (lexer->buffer[lexer->next_pos] == '/' &&
 		lexer->buffer[lexer->next_pos + 1] == '/') {
 		lexer->next_pos += 2;
-		while (lexer->buffer[lexer->next_pos] != '\n')
-			lexer->next_pos++;
+		while (lexer->buffer[lexer->next_pos++] != '\n');
 		skip_whitespace(lexer);
+		skip_comments(lexer);
 	}
 }
 
