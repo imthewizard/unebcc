@@ -87,6 +87,8 @@ IRInstruction ir_instruction_binary(IRInstructionType type, const IROperand *lhs
 	_IR_INSTRUCTION_BINARY((instruction), (IR_OPERAND_TEMP), (temp1), (IR_OPERAND_TEMP), (temp2))
 #define IR_INSTRUCTION_BINARY_TEMP_CONST(instruction, temp1, const_val) \
 	_IR_INSTRUCTION_BINARY((instruction), (IR_OPERAND_TEMP), (temp1), (IR_OPERAND_CONST), (const_val))
+#define IR_INSTRUCTION_BINARY_CONST_TEMP(instruction, const_val, temp1) \
+	_IR_INSTRUCTION_BINARY((instruction), (IR_OPERAND_CONST), (const_val), (IR_OPERAND_TEMP), (temp1))
 #define IR_INSTRUCTION_BINARY_CONST_CONST(instruction, const1, const2) \
 	_IR_INSTRUCTION_BINARY((instruction), (IR_OPERAND_CONST), (const1), (IR_OPERAND_CONST), (const2))
 

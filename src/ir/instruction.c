@@ -83,7 +83,7 @@ IRInstruction ir_instruction_binary(IRInstructionType type, const IROperand *lhs
 		}
 	} else {
 		if (rhs->type == IR_OPERAND_TEMP) {
-			return IR_INSTRUCTION_BINARY_TEMP_CONST(type, rhs->value, lhs->value)
+			return IR_INSTRUCTION_BINARY_CONST_TEMP(type, lhs->value, rhs->value)
 		} else if (rhs->type == IR_OPERAND_CONST) {
 			return IR_INSTRUCTION_BINARY_CONST_CONST(type, lhs->value, rhs->value)
 		} else {
