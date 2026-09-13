@@ -19,9 +19,9 @@
 // Runs the preprocessing stage on the input and returns the preprocessed file
 static File preprocess(const ArgsContext *ctx);
 // Main compile pass: lexer, parser, and irs
-static x86_64Program compile(const ArgsContext *ctx, const File *input);
+static x86_64Program compile(const ArgsContext *ctx, File *input);
 // Assembles the program
-static void assemble(const ArgsContext *ctx, const x86_64Program *program);
+static void assemble(const ArgsContext *ctx, x86_64Program *program);
 
 // Lexes a buffer
 static Lexer lex(const char *buffer, unsigned int buffer_len, bool print);
@@ -39,9 +39,6 @@ void driver_start(const ArgsContext *ctx)
 	File preprocessed = preprocess(ctx);
 
 	x86_64Program program = compile(ctx, &preprocessed);
-
-	file_close(&preprocessed);
-	file_remove(&preprocessed);
 
 	assemble(ctx, &program);
 
@@ -61,7 +58,7 @@ static File preprocess(const ArgsContext *ctx)
 	return temp;
 }
 
-static x86_64Program compile(const ArgsContext *ctx, const File *input)
+static x86_64Program compile(const ArgsContext *ctx, File *input)
 {
 	const bool print_lexer      = args_cmp_value(ctx, "print", "lexer");
 	const bool print_parser     = args_cmp_value(ctx, "print", "parser");
@@ -78,6 +75,9 @@ static x86_64Program compile(const ArgsContext *ctx, const File *input)
 
 	Lexer lexer = lex(file_buffer, buffer_len, print_lexer);
 	if (only_lex) {
+		file_close(input);
+		file_remove(input);
+		lexer_deinit(&lexer);
 		if (lexer.had_error) exit(EXIT_FAILURE);
 		exit(EXIT_SUCCESS);
 	}
@@ -85,22 +85,31 @@ static x86_64Program compile(const ArgsContext *ctx, const File *input)
 	free(file_buffer);
 
 	Parser parser = parse(&lexer, print_parser);
-	if (parser.had_error) exit(EXIT_FAILURE);
-	if (only_parse) exit(EXIT_SUCCESS);
-
+	if ((parser.had_error) || (only_parse)) {
+		file_close(input);
+		file_remove(input);
+		lexer_deinit(&lexer);
+		parser_deinit(&parser);
+		if (parser.had_error)
+			exit(EXIT_FAILURE);
+		exit(EXIT_SUCCESS);
+	}
 
 	IR ir = generate_ir(&parser, print_ir);
 	x86_64Program prog = generate_machine_ir(&ir, print_machine_ir);
-	if (only_codegen) exit(EXIT_SUCCESS);
 
+	file_close(input);
+	file_remove(input);
 	ir_deinit(&ir);
 	parser_deinit(&parser);
 	lexer_deinit(&lexer);
 
+	if (only_codegen) exit(EXIT_SUCCESS);
+
 	return prog;
 }
 
-static void assemble(const ArgsContext *ctx, const x86_64Program *program)
+static void assemble(const ArgsContext *ctx, x86_64Program *program)
 {
 	const bool print_asm = args_cmp_value(ctx, "print", "asm");
 
@@ -110,12 +119,18 @@ static void assemble(const ArgsContext *ctx, const x86_64Program *program)
 	// Close the file now so gcc can read it correctly
 	file_close(&temp);
 
-	assembler_assemble_gcc(asm_filename, filename_no_ext);
+	int ret = assembler_assemble_gcc(asm_filename, filename_no_ext);
 
 	file_remove(&temp);
 
 	free(asm_filename);
 	free(filename_no_ext);
+
+	if (ret != EXIT_SUCCESS) {
+		x86_64_program_deinit(program);
+		puts("Assembler error");
+		exit(EXIT_FAILURE);
+	}
 }
 
 static Lexer lex(const char *buffer, unsigned int buffer_len, bool print)

@@ -3,7 +3,7 @@
 
 #include "assembler/assembler.h"
 
-static void call_gcc(char const *filename, const char *output)
+static int call_gcc(char const *filename, const char *output)
 {
 	const char *main = "gcc -x assembler ";
 	const int main_len = strlen(main);
@@ -19,11 +19,12 @@ static void call_gcc(char const *filename, const char *output)
 	memcpy(cmd + main_len + filename_len, " -o ", flag_o_len);
 	memcpy(cmd + main_len + filename_len + flag_o_len, output, output_len);
 
-	system(cmd);
+	int ret = system(cmd);
 	free(cmd);
+	return ret;
 }
 
-void assembler_assemble_gcc(const char *filename, const char *output)
+int assembler_assemble_gcc(const char *filename, const char *output)
 {
-	call_gcc(filename, output);
+	return call_gcc(filename, output);
 }
