@@ -78,6 +78,11 @@ static IROperand generate_expression(IRBasicBlock *bb, ASTNode *expr)
 		case AST_UNARY:{
 			IROperand inner_op = generate_expression(bb, expr->node_value.unary.expression);
 			switch (expr->node_value.unary.type) {
+				case AST_UNARY_BITWISE_NOT:{
+					IRInstruction inst = ir_instruction_unary(IR_BITWISE_NOT, &inner_op);
+					array_push(bb->instructions, inst);
+					return IR_OPERAND_CREATE(IR_OPERAND_TEMP, inst.dest_id);
+				}
 				case AST_UNARY_NEGATE:{
 					IRInstruction inst = ir_instruction_unary(IR_NEGATE, &inner_op);
 					array_push(bb->instructions, inst);
