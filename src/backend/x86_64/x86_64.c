@@ -15,23 +15,23 @@ static const char *reg_to_str[] = {
 };
 
 static const char *mnemonic_to_str[] = {
-	[X86_64_MOV] = "MOV",
-	[X86_64_RET] = "RET",
-	[X86_64_NEG] = "NEG",
-	[X86_64_NOT] = "NOT",
+	[X86_64_MOV] = "mov",
+	[X86_64_RET] = "ret",
+	[X86_64_NEG] = "neg",
+	[X86_64_NOT] = "not",
 
-	[X86_64_ADD] = "ADD",
-	[X86_64_SUB] = "SUB",
-	[X86_64_IMUL] = "IMUL",
-	[X86_64_AND] = "AND",
-	[X86_64_OR] = "OR",
-	[X86_64_XOR] = "XOR",
-	[X86_64_SHL] = "SHL",
-	[X86_64_SAR] = "SAR",
+	[X86_64_ADD]  = "add",
+	[X86_64_SUB]  = "sub",
+	[X86_64_IMUL] = "imul",
+	[X86_64_AND]  = "and",
+	[X86_64_OR]   = "or",
+	[X86_64_XOR]  = "xor",
+	[X86_64_SHL]  = "shl",
+	[X86_64_SAR]  = "sar",
 
-	[X86_64_IDIV] = "IDIV",
+	[X86_64_IDIV] = "idiv",
 
-	[X86_64_CDQ] = "CDQ",
+	[X86_64_CDQ] = "cdq",
 
 	[X86_64_ALLOCATE_STACK] = "ALLOCATE_STACK",
 	[X86_64_DEALLOCATE_STACK] = "DEALLOCATE_STACK",
@@ -110,4 +110,9 @@ x86_64Operand x86_64_ir_operand(const IROperand *ir_op)
 const char *x86_64_reg_to_str(x86_64Registers reg)
 {
 	return reg_to_str[reg];
+}
+
+const char *x86_64_mnemonic_to_str(x86_64Mnemonics mnemonic)
+{
+	return mnemonic_to_str[mnemonic];
 }

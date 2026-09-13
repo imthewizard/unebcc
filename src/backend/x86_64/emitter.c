@@ -64,32 +64,9 @@ static void print_operand(FILE *file, const x86_64Operand *op)
 static void emit_instruction(FILE *file, const x86_64Instruction *inst)
 {
 	// Print instruction
-	switch (inst->mnemonic) {
-		case X86_64_MOV: fprintf(file, "mov"); break;
-		case X86_64_RET: fprintf(file, "ret"); break;
-		case X86_64_NEG: fprintf(file, "neg"); break;
-		case X86_64_NOT: fprintf(file, "not"); break;
-
-		case X86_64_ADD: fprintf(file, "add"); break;
-		case X86_64_SUB: fprintf(file, "sub"); break;
-		case X86_64_IMUL: fprintf(file, "imul"); break;
-		case X86_64_AND: fprintf(file, "and"); break;
-		case X86_64_OR: fprintf(file, "or"); break;
-		case X86_64_XOR: fprintf(file, "xor"); break;
-		case X86_64_SHL: fprintf(file, "shl"); break;
-		case X86_64_SAR: fprintf(file, "sar"); break;
-
-		case X86_64_IDIV: fprintf(file, "idiv"); break;
-
-		case X86_64_CDQ: fprintf(file, "cdq"); break;
-
-		// Pseudo
-		case X86_64_ALLOCATE_STACK:
-		case X86_64_DEALLOCATE_STACK:
-			break;
-
-		default: UNIMPLEMENTED("Unhandled mnemonic case");
-	}
+	if (inst->mnemonic != X86_64_ALLOCATE_STACK &&
+		inst->mnemonic != X86_64_DEALLOCATE_STACK)
+		fprintf(file, "%s", x86_64_mnemonic_to_str(inst->mnemonic));
 
 	// Print operands
 	switch (inst->mnemonic) {

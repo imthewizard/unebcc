@@ -72,6 +72,8 @@ typedef struct x86_64Instruction {
 void x86_64_print_inst(const x86_64Instruction *inst);
 // Converts a register enum value to a string
 const char *x86_64_reg_to_str(x86_64Registers reg);
+// Converts a mnemonic enum value to a string
+const char *x86_64_mnemonic_to_str(x86_64Mnemonics mnemonic);
 // Converts an IR operand to a x86_64 operand
 x86_64Operand x86_64_ir_operand(const IROperand *ir_op);
 
