@@ -8,6 +8,13 @@
 #include "utils/array.h"
 #include "utils/debug.h"
 
+// Sets had_error and prints an error
+#define ERROR(lexer, msg) \
+	do { \
+		printf("Lexer error: %s", msg); \
+		lexer->had_error = true; \
+	} while (0)
+
 // Increments lexer->pos to skip whitespace, if needed
 static void skip_whitespace(Lexer *lexer);
 // Increments lexer->pos to skip comments, if needed
@@ -165,6 +172,10 @@ static Token handle_number(Lexer *lexer, unsigned int start_pos)
 	// Handling integers constants
 	while (isdigit(peek(lexer))){
 		advance(lexer);
+	}
+
+	if (isalnum(peek(lexer)) || peek(lexer) == '_') {
+		ERROR(lexer, "expected number, got identifier\n");
 	}
 
 	unsigned int len = lexer->next_pos - start_pos;
