@@ -16,7 +16,7 @@ static ASTNode *parse_factor(Parser *p);
 
 // Checks if the next token is of the expected type and advances.
 // If it isn't, an error message will be printed.
-static bool expect(Parser *p, TokenType token_type);
+static bool expect(Parser *p, TokenType expected_type);
 // Returns the most recently consumed token
 static const Token* previous(Parser *p);
 // Returns the next token
@@ -52,12 +52,15 @@ void parser_parse(Parser *p)
 	p->ast = parse_program(p);
 }
 
-static bool expect(Parser *p, TokenType token_type)
+static bool expect(Parser *p, TokenType expected_type)
 {
-	if (p->tokens[p->next_token++].type == token_type) {
+	TokenType next_type = p->tokens[p->next_token++].type;
+	if (next_type == expected_type) {
 		return true;
 	}
-	fprintf(stderr, "Syntax error\n");
+	fprintf(stderr, "Syntax error: ");
+	fprintf(stderr, "expected %s, ", str_token_type(expected_type));
+	fprintf(stderr, "got %s\n", str_token_type(next_type));
 	p->had_error = true;
 	return false;
 }

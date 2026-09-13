@@ -46,6 +46,8 @@ typedef struct Token{
 
 // Prints the token's type and its literal value
 void print_token(const Token *token);
+// Returns the token type as a string
+const char *str_token_type(const TokenType type);
 // Converts a null-terminated string keyword to a token type. Returns TOKEN_INVALID if no token for that keyword exists
 TokenType keyword_to_tokentype(const char *keyword);
 

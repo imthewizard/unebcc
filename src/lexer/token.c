@@ -47,6 +47,11 @@ void print_token(const Token *token)
 	}
 }
 
+const char *str_token_type(const TokenType type)
+{
+	return token_type_str[type];
+}
+
 TokenType keyword_to_tokentype(const char *keyword)
 {
 	static const char *keywords[] = {
