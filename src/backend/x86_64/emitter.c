@@ -77,7 +77,7 @@ static void emit_instruction(FILE *file, const x86_64Instruction *inst)
 		case X86_64_OR: fprintf(file, "or"); break;
 		case X86_64_XOR: fprintf(file, "xor"); break;
 		case X86_64_SHL: fprintf(file, "shl"); break;
-		case X86_64_SHR: fprintf(file, "shr"); break;
+		case X86_64_SAR: fprintf(file, "sar"); break;
 
 		case X86_64_IDIV: fprintf(file, "idiv"); break;
 
@@ -114,7 +114,7 @@ static void emit_instruction(FILE *file, const x86_64Instruction *inst)
 		case X86_64_OR:
 		case X86_64_XOR:
 		case X86_64_SHL:
-		case X86_64_SHR:
+		case X86_64_SAR:
 			fprintf(file, " ");
 			print_operand(file, &inst->instruction.binary.dst);
 			fprintf(file, ", ");

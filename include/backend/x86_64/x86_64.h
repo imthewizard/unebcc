@@ -5,6 +5,8 @@
 
 typedef enum x86_64Registers {
 	X86_64_AX,
+	X86_64_ECX,
+	X86_64_CL,
 	X86_64_DX,
 	X86_64_R10,
 	X86_64_R11,
@@ -23,7 +25,7 @@ typedef enum x86_64Mnemonics {
 	X86_64_OR,
 	X86_64_XOR,
 	X86_64_SHL,
-	X86_64_SHR,
+	X86_64_SAR,
 
 	X86_64_IDIV,
 

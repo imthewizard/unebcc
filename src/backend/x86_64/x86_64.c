@@ -6,8 +6,10 @@
 #include "utils/debug.h"
 
 static const char *reg_to_str[] = {
-	[X86_64_AX] = "eax",
-	[X86_64_DX] = "edx",
+	[X86_64_AX]  = "eax",
+	[X86_64_ECX] = "ecx",
+	[X86_64_CL]  = "cl",
+	[X86_64_DX]  = "edx",
 	[X86_64_R10] = "r10d",
 	[X86_64_R11] = "r11d",
 };
@@ -25,7 +27,7 @@ static const char *mnemonic_to_str[] = {
 	[X86_64_OR] = "OR",
 	[X86_64_XOR] = "XOR",
 	[X86_64_SHL] = "SHL",
-	[X86_64_SHR] = "SHR",
+	[X86_64_SAR] = "SAR",
 
 	[X86_64_IDIV] = "IDIV",
 
@@ -69,7 +71,7 @@ void x86_64_print_inst(const x86_64Instruction *inst)
 		case X86_64_OR:
 		case X86_64_XOR:
 		case X86_64_SHL:
-		case X86_64_SHR:
+		case X86_64_SAR:
 			print_operand(&inst->instruction.binary.dst);
 			print_operand(&inst->instruction.binary.src);
 			break;

@@ -117,7 +117,7 @@ static void generic_binary(x86_64Function *fn, const IRInstruction *inst)
 		case IR_BITWISE_OR: mnemonic = X86_64_OR; break;
 		case IR_BITWISE_XOR: mnemonic = X86_64_XOR; break;
 		case IR_LEFT_SHIFT: mnemonic = X86_64_SHL; break;
-		case IR_RIGHT_SHIFT: mnemonic = X86_64_SHR; break;
+		case IR_RIGHT_SHIFT: mnemonic = X86_64_SAR; break;
 
 		default: UNIMPLEMENTED("unhandled inst type");
 	}
