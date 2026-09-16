@@ -19,7 +19,7 @@
 // Runs the preprocessing stage on the input and returns the preprocessed file
 static File preprocess(const ArgsContext *ctx);
 // Main compile pass: lexer, parser, and irs
-static x86_64Program compile(const ArgsContext *ctx, File *input);
+static void compile(const ArgsContext *ctx, File *input, IR *ir, x86_64Program *program);
 // Assembles the program
 static void assemble(const ArgsContext *ctx, x86_64Program *program);
 
@@ -38,11 +38,15 @@ void driver_start(const ArgsContext *ctx)
 {
 	File preprocessed = preprocess(ctx);
 
-	x86_64Program program = compile(ctx, &preprocessed);
+	IR ir;
+	x86_64Program program;
+	compile(ctx, &preprocessed, &ir, &program);
+	// x86_64Program program = compile(ctx, &preprocessed);
 
 	assemble(ctx, &program);
 
 	x86_64_program_deinit(&program);
+	ir_deinit(&ir);
 }
 
 static File preprocess(const ArgsContext *ctx)
@@ -58,7 +62,7 @@ static File preprocess(const ArgsContext *ctx)
 	return temp;
 }
 
-static x86_64Program compile(const ArgsContext *ctx, File *input)
+static void compile(const ArgsContext *ctx, File *input, IR *ir, x86_64Program *program)
 {
 	const bool print_lexer      = args_cmp_value(ctx, "print", "lexer");
 	const bool print_parser     = args_cmp_value(ctx, "print", "parser");
@@ -95,18 +99,18 @@ static x86_64Program compile(const ArgsContext *ctx, File *input)
 		exit(EXIT_SUCCESS);
 	}
 
-	IR ir = generate_ir(&parser, print_ir);
-	x86_64Program prog = generate_machine_ir(&ir, print_machine_ir);
+	*ir = generate_ir(&parser, print_ir);
+	*program = generate_machine_ir(ir, print_machine_ir);
 
 	file_close(input);
 	file_remove(input);
-	ir_deinit(&ir);
+	// ir_deinit(&ir);
 	parser_deinit(&parser);
 	lexer_deinit(&lexer);
 
 	if (only_codegen) exit(EXIT_SUCCESS);
 
-	return prog;
+	// return prog;
 }
 
 static void assemble(const ArgsContext *ctx, x86_64Program *program)

@@ -5,8 +5,7 @@
 
 typedef enum x86_64Registers {
 	X86_64_AX,
-	X86_64_ECX,
-	X86_64_CL,
+	X86_64_CX,
 	X86_64_DX,
 	X86_64_R10,
 	X86_64_R11,
@@ -17,6 +16,19 @@ typedef enum x86_64Mnemonics {
 	X86_64_RET,
 	X86_64_NEG,
 	X86_64_NOT,
+	X86_64_JMP,
+	X86_64_JE,
+	X86_64_JNE,
+	X86_64_JG,
+	X86_64_JGE,
+	X86_64_JL,
+	X86_64_JLE,
+	X86_64_SETE,
+	X86_64_SETNE,
+	X86_64_SETG,
+	X86_64_SETGE,
+	X86_64_SETL,
+	X86_64_SETLE,
 
 	X86_64_ADD,
 	X86_64_SUB,
@@ -26,6 +38,7 @@ typedef enum x86_64Mnemonics {
 	X86_64_XOR,
 	X86_64_SHL,
 	X86_64_SAR,
+	X86_64_CMP,
 
 	X86_64_IDIV,
 
@@ -34,9 +47,11 @@ typedef enum x86_64Mnemonics {
 	// Pseudo
 	X86_64_ALLOCATE_STACK,
 	X86_64_DEALLOCATE_STACK,
+	X86_64_DEFINE_LABEL
 }x86_64Mnemonics;
 
 typedef enum x86_64OperandType {
+	X86_64_LABEL,
 	X86_64_IMMEDIATE,
 	X86_64_REGISTER,
 	X86_64_PSEUDO,
@@ -50,6 +65,7 @@ typedef struct x86_64Operand {
 		x86_64Registers reg;
 		int pseudo;
 		int stack;
+		char *label;
 	} value;
 }x86_64Operand;
 
@@ -70,8 +86,8 @@ typedef struct x86_64Instruction {
 
 // Prints the instruction
 void x86_64_print_inst(const x86_64Instruction *inst);
-// Converts a register enum value to a string
-const char *x86_64_reg_to_str(x86_64Registers reg);
+// Converts a register enum value to a string. byte_amount controls the size of the register: 4 will print the 32-bit register, 1 will print the 8 bit register
+const char *x86_64_reg_to_str(x86_64Registers reg, int byte_amount);
 // Converts a mnemonic enum value to a string
 const char *x86_64_mnemonic_to_str(x86_64Mnemonics mnemonic);
 // Converts an IR operand to a x86_64 operand
@@ -87,6 +103,8 @@ x86_64Operand x86_64_ir_operand(const IROperand *ir_op);
 	(x86_64Operand){.type = X86_64_PSEUDO, .value.pseudo = (val)}
 #define X64_OPERAND_STACK(val) \
 	(x86_64Operand){.type = X86_64_STACK, .value.stack = (val)}
+#define X64_OPERAND_LABEL(val) \
+	(x86_64Operand){.type = X86_64_LABEL, .value.label = (val)}
 
 #define X64_INSTRUCTION_NO_OPS(mnem) \
 	(x86_64Instruction){ \
@@ -103,10 +121,20 @@ x86_64Operand x86_64_ir_operand(const IROperand *ir_op);
 		.mnemonic = (mnem), \
 		.instruction.unary.src = (src_op), \
 	}
+#define X64_INSTRUCTION_JUMP(mnem, label_name) \
+	(x86_64Instruction){ \
+		.mnemonic = (mnem), \
+		.instruction.unary.src = X64_OPERAND_LABEL((label_name)), \
+	}
 #define X64_INSTRUCTION_STACK(mnem, stack) \
 	(x86_64Instruction){ \
 		.mnemonic = (mnem), \
 		.instruction.unary.src = X64_OPERAND_STACK((stack)) \
+	}
+#define X64_INSTRUCTION_DEFINE_LABEL(label_name) \
+	(x86_64Instruction){ \
+		.mnemonic = X86_64_DEFINE_LABEL, \
+		.instruction.unary.src = X64_OPERAND_LABEL((label_name)), \
 	}
 
 #endif // UNEBCC_X86_64_H

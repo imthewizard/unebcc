@@ -18,6 +18,8 @@ static void fix_invalid_imuls(x86_64Function *fn);
 static void fix_invalid_idivs(x86_64Function *fn);
 // fixes shifts with addresses as both src and dst to mov to ecx first
 static void fix_invalid_shifts(x86_64Function *fn);
+// fixes cmps constants as dst
+static void fix_invalid_cmps(x86_64Function *fn);
 
 void x86_64_regalloc(x86_64Program *prog)
 {
@@ -36,6 +38,7 @@ void x86_64_regalloc(x86_64Program *prog)
 		fix_invalid_imuls(fn);
 		fix_invalid_idivs(fn);
 		fix_invalid_shifts(fn);
+		fix_invalid_cmps(fn);
 	}
 }
 
@@ -54,6 +57,7 @@ static void regalloc(x86_64Instruction *inst, int *next_offset)
 		case X86_64_XOR:
 		case X86_64_SHL:
 		case X86_64_SAR:
+		case X86_64_CMP:
 			if (inst->instruction.binary.dst.type == X86_64_PSEUDO) {
 				int pseudo_id = inst->instruction.binary.dst.value.pseudo;
 				int map_off = pseudo_offset_map[pseudo_id];
@@ -85,6 +89,12 @@ static void regalloc(x86_64Instruction *inst, int *next_offset)
 		case X86_64_IDIV:
 		case X86_64_NEG:
 		case X86_64_NOT:
+		case X86_64_SETE:
+		case X86_64_SETNE:
+		case X86_64_SETG:
+		case X86_64_SETGE:
+		case X86_64_SETL:
+		case X86_64_SETLE:
 			if (inst->instruction.unary.src.type == X86_64_PSEUDO) {
 				int pseudo_id = inst->instruction.unary.src.value.pseudo;
 				int map_off = pseudo_offset_map[pseudo_id];
@@ -101,6 +111,15 @@ static void regalloc(x86_64Instruction *inst, int *next_offset)
 
 		case X86_64_CDQ:
 		case X86_64_RET:
+		case X86_64_JMP:
+		case X86_64_JE:
+		case X86_64_JNE:
+		case X86_64_JG:
+		case X86_64_JGE:
+		case X86_64_JL:
+		case X86_64_JLE:
+
+		case X86_64_DEFINE_LABEL:
 			return;
 
 		default: UNIMPLEMENTED("Unhandled mnemonic case");
@@ -238,15 +257,46 @@ static void fix_invalid_shifts(x86_64Function *fn)
 
 				// change this instruction to mov ecx, [STACK1]
 				inst->mnemonic = X86_64_MOV;
-				inst->instruction.binary.dst = X64_OPERAND_REG(X86_64_ECX);
+				inst->instruction.binary.dst = X64_OPERAND_REG(X86_64_CX);
 				inst->instruction.binary.src = X64_OPERAND_STACK(old_src_stack);
 
 				// place a SHx [STACK2], cl
 				x86_64Instruction new = X64_INSTRUCTION_BINARY(old_mnemonic,
 					X64_OPERAND_STACK(old_dst_stack),
-					X64_OPERAND_REG(X86_64_CL)
+					X64_OPERAND_REG(X86_64_CX)
 				);
 				array_insert(fn->instructions, new, i + 1);
+			}
+		}
+	}
+}
+
+static void fix_invalid_cmps(x86_64Function *fn)
+{
+	for (int i = 0; i < array_length(fn->instructions); i++) {
+		x86_64Instruction *inst = &fn->instructions[i];
+
+		if (inst->mnemonic == X86_64_CMP) {
+			x86_64Operand *src = &inst->instruction.binary.src;
+			x86_64Operand *dst = &inst->instruction.binary.dst;
+
+			// is this a cmp [IMM], ??? ?
+			if (dst->type == X86_64_IMMEDIATE) {
+				int old_immediate = dst->value.imm;
+				x86_64Operand old_op = *src;
+
+				// change this instruction to mov r11d, [IMM]
+				inst->mnemonic = X86_64_MOV;
+				inst->instruction.binary.dst = X64_OPERAND_REG(X86_64_R11);
+				inst->instruction.binary.src = X64_OPERAND_IMM(old_immediate);
+
+				// place a cmp ???, r11d
+				x86_64Instruction new = X64_INSTRUCTION_BINARY(X86_64_CMP,
+					X64_OPERAND_REG(X86_64_R11),
+					old_op
+				);
+				array_insert(fn->instructions, new, i + 1);
+				continue;
 			}
 		}
 	}
