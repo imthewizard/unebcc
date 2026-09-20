@@ -7,9 +7,12 @@
 #include "parser/parser.h"
 
 #include "utils/debug.h"
+#include "utils/array.h"
 
 static ASTNode *parse_program(Parser *p);
 static ASTNode *parse_function(Parser *p);
+static ASTNode *parse_block_item(Parser *p);
+static ASTNode *parse_declaration(Parser *p);
 static ASTNode *parse_statement(Parser *p);
 static ASTNode *parse_expression(Parser *p, int min_prec);
 static ASTNode *parse_factor(Parser *p);
@@ -85,6 +88,8 @@ static void advance(Parser *p)
 static int precedence(TokenType token_type)
 {
 	switch (token_type) {
+		case TOKEN_EQUAL: return 1;
+
 		case TOKEN_LOGICAL_OR: return 5;
 
 		case TOKEN_LOGICAL_AND: return 10;
@@ -136,6 +141,7 @@ static bool is_binary_operator(TokenType token_type)
 		case TOKEN_NOT_EQUAL:
 		case TOKEN_LESS_EQUAL:
 		case TOKEN_GREATER_EQUAL:
+		case TOKEN_EQUAL:
 			return true;
 
 		default: return false;
@@ -167,24 +173,73 @@ static ASTNode *parse_function(Parser *p)
 
 	if (expect(p, TOKEN_LBRACE) == false) return NULL;
 
-	ASTNode *statement = parse_statement(p);
-	if (statement == NULL) return NULL;
+	ASTNode **block_items = array_create(block_items, 1);
+	ASTNode *current_block_item;
+	while (peek(p)->type != TOKEN_RBRACE) {
+		current_block_item = parse_block_item(p);
+		if (current_block_item == NULL) return NULL;
+
+		array_push(block_items, current_block_item);
+	}
 
 	if (expect(p, TOKEN_RBRACE) == false) return NULL;
+	return ast_function(name, block_items);
+}
 
-	return ast_function(name, statement);
+static ASTNode *parse_block_item(Parser *p)
+{
+	if (peek(p)->type == TOKEN_INT) {
+		return parse_declaration(p);
+	} else {
+		return parse_statement(p);
+	}
+}
+
+static ASTNode *parse_declaration(Parser *p)
+{
+	if (expect(p, TOKEN_INT) == false) return NULL;
+
+	const Token *possible_identifier = peek(p);
+	if (expect(p, TOKEN_IDENTIFIER) == false) return NULL;
+
+	ASTNode *exp = NULL;
+	if (peek(p)->type == TOKEN_EQUAL) {
+		advance(p);
+
+		exp = parse_expression(p, 0);
+		if (exp == NULL) return NULL;
+	}
+
+	if (expect(p, TOKEN_SEMICOLON) == false) return NULL;
+
+	return ast_declaration(possible_identifier->literal, exp);
 }
 
 static ASTNode *parse_statement(Parser *p)
 {
-	if (expect(p, TOKEN_RETURN) == false) return NULL;
+	const Token *next = peek(p);
+
+	if (next->type == TOKEN_RETURN) {
+		advance(p);
+
+		ASTNode *exp = parse_expression(p, 0);
+		if (exp == NULL) return NULL;
+
+		if (expect(p, TOKEN_SEMICOLON) == false) return NULL;
+
+		return ast_statement(AST_STATEMENT_RETURN, exp);
+	}
+
+	if (next->type == TOKEN_SEMICOLON) {
+		advance(p);
+		return ast_statement(AST_STATEMENT_NULL_EXPRESSION, NULL);
+	}
 
 	ASTNode *exp = parse_expression(p, 0);
-	if (exp == NULL) return NULL;
 
 	if (expect(p, TOKEN_SEMICOLON) == false) return NULL;
 
-	return ast_return_statement(exp);
+	return exp;
 }
 
 static ASTNode *parse_expression(Parser *p, int min_prec)
@@ -199,8 +254,13 @@ static ASTNode *parse_expression(Parser *p, int min_prec)
 		if (prec < min_prec) return left;
 
 		advance(p);
-		ASTNode *right = parse_expression(p, prec + 1);
 
+		if (next->type == TOKEN_EQUAL) {
+			ASTNode *right = parse_expression(p, prec);
+			return ast_assignment(left, right);
+		}
+
+		ASTNode *right = parse_expression(p, prec + 1);
 		ASTBinaryType bin_type;
 		switch (next->type) {
 			case TOKEN_PLUS: bin_type = AST_BINARY_ADD; break;
@@ -236,10 +296,14 @@ static ASTNode *parse_factor(Parser *p)
 
 	switch(next->type) {
 		case TOKEN_INTEGER_LITERAL:{
-			if (expect(p, TOKEN_INTEGER_LITERAL) == false) return NULL;
-			const Token *prev = previous(p);
-			int value = atoi(prev->literal);
+			advance(p);
+			int value = atoi(next->literal);
 			return ast_int_literal(value);
+		}
+		case TOKEN_IDENTIFIER:{
+			advance(p);
+			const char *identifier = next->literal;
+			return ast_variable(identifier);
 		}
 
 		case TOKEN_TILDE:{

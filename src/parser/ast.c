@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "parser/ast.h"
+#include "utils/array.h"
 
 #define INDENT_PER_LEVEL 2
 
@@ -52,6 +53,12 @@ static const char *binary_type_str[] = {
 	[AST_BINARY_LOGICAL_GREATER_EQUAL] = "LOGICAL GREATER EQUAL",
 };
 
+static const char *statement_type_str[] = {
+	[AST_STATEMENT_RETURN] = "RETURN",
+	[AST_STATEMENT_EXPRESSION] = "EXPRESSION",
+	[AST_STATEMENT_NULL_EXPRESSION] = "NULL EXPRESSION",
+};
+
 static ASTNode *alloc_node(ASTNodeType type)
 {
 	ASTNode *node = malloc(sizeof(ASTNode));
@@ -59,7 +66,7 @@ static ASTNode *alloc_node(ASTNodeType type)
 	return node;
 }
 
-void ast_print(ASTNode *main, int indent)
+void ast_print(const ASTNode *main, int indent)
 {
 	if (main == NULL) return;
 
@@ -75,12 +82,30 @@ void ast_print(ASTNode *main, int indent)
 			PRINT_INDENT(indent, "Function(\n");
 			PRINT_FMT_INDENT(next_indent, "name=%s\n", main->node_value.function.name);
 			PRINT_INDENT(next_indent, "body=\n");
-			ast_print(main->node_value.function.body, next_indent + INDENT_PER_LEVEL);
+			ASTNode **body = main->node_value.function.body;
+			for (int i = 0; i < array_length(body); i++) {
+				ast_print(body[i], next_indent + INDENT_PER_LEVEL);
+			}
 			PRINT_INDENT(indent, ")\n");
 			break;
-		case AST_RETURN_STATEMENT:
-			PRINT_INDENT(indent, "Return(\n");
-			ast_print(main->node_value.return_statement.expression, next_indent + INDENT_PER_LEVEL);
+		case AST_STATEMENT:{
+			ASTStatementType type = main->node_value.statement.type;
+			PRINT_INDENT(indent, "Statement(\n");
+			PRINT_FMT_INDENT(next_indent, "type=%s\n", statement_type_str[type]);
+			PRINT_INDENT(next_indent, "expression=\n");
+			ast_print(main->node_value.statement.expression, next_indent + INDENT_PER_LEVEL);
+			PRINT_INDENT(indent, ")\n");
+			break;
+		}
+		case AST_DECLARATION:
+			PRINT_INDENT(indent, "Declaration(\n");
+			PRINT_FMT_INDENT(next_indent, "name=%s\n", main->node_value.declaration.name);
+			PRINT_INDENT(next_indent, "init=\n");
+			if (main->node_value.declaration.init != NULL){
+				ast_print(main->node_value.declaration.init, next_indent + INDENT_PER_LEVEL);
+			} else {
+				PRINT_INDENT(next_indent + INDENT_PER_LEVEL, "NULL");
+			}
 			PRINT_INDENT(indent, ")\n");
 			break;
 		case AST_INT_LITERAL:
@@ -94,7 +119,7 @@ void ast_print(ASTNode *main, int indent)
 			ast_print(main->node_value.unary.expression, next_indent + INDENT_PER_LEVEL);
 			PRINT_INDENT(indent, ")\n");
 			break;
-	   }
+	    }
 		case AST_BINARY:{
 			const ASTBinaryType type = main->node_value.binary.type;
 			PRINT_INDENT(indent, "Binary(\n");
@@ -105,7 +130,22 @@ void ast_print(ASTNode *main, int indent)
 			ast_print(main->node_value.binary.right, next_indent + INDENT_PER_LEVEL);
 			PRINT_INDENT(indent, ")\n");
 			break;
-	   }
+	    }
+		case AST_VARIABLE:{
+			PRINT_INDENT(indent, "Variable(\n");
+			PRINT_FMT_INDENT(next_indent, "identifier=%s\n", main->node_value.variable.identifier);
+			PRINT_INDENT(indent, ")\n");
+			break;
+	    }
+		case AST_ASSIGNMENT:{
+			PRINT_INDENT(indent, "Assignment(\n");
+			PRINT_INDENT(next_indent, "left=\n");
+			ast_print(main->node_value.assignment.left, next_indent + INDENT_PER_LEVEL);
+			PRINT_INDENT(next_indent, "right=\n");
+			ast_print(main->node_value.assignment.right, next_indent + INDENT_PER_LEVEL);
+			PRINT_INDENT(indent, ")\n");
+			break;
+	    }
 
 		default:
 			PRINT_INDENT(indent, "UNKNOWN_TYPE");
@@ -121,12 +161,21 @@ void ast_free_node(ASTNode *main)
 		case AST_PROGRAM:
 			ast_free_node(main->node_value.program.function);
 			break;
-		case AST_FUNCTION:
-			// Since the name pointer does not belong to the node, we won't free it here
-			ast_free_node(main->node_value.function.body);
+		case AST_FUNCTION:{
+			// Name pointer does not belong to the node, don't free it here
+			ASTNode **array = main->node_value.function.body;
+			for (int i = 0; i < array_length(array); i++) {
+				ast_free_node(array[i]);
+			}
+			array_free(array);
 			break;
-		case AST_RETURN_STATEMENT:
-			ast_free_node(main->node_value.return_statement.expression);
+		}
+		case AST_STATEMENT:
+			ast_free_node(main->node_value.statement.expression);
+			break;
+		case AST_DECLARATION:
+			// Name pointer does not belong to the node, don't free it here
+			ast_free_node(main->node_value.declaration.init);
 			break;
 		case AST_UNARY:
 			ast_free_node(main->node_value.unary.expression);
@@ -134,6 +183,13 @@ void ast_free_node(ASTNode *main)
 		case AST_BINARY:
 			ast_free_node(main->node_value.binary.left);
 			ast_free_node(main->node_value.binary.right);
+			break;
+		case AST_VARIABLE:
+			// Identifier pointer does not belong to the node, don't free it here
+			break;
+		case AST_ASSIGNMENT:
+			ast_free_node(main->node_value.assignment.left);
+			ast_free_node(main->node_value.assignment.right);
 			break;
 
 		default: break;
@@ -149,7 +205,7 @@ ASTNode *ast_program(ASTNode *func)
 	return node;
 }
 
-ASTNode *ast_function(const char *name, ASTNode *body)
+ASTNode *ast_function(const char *name, ASTNode **body)
 {
 	ASTNode *node = alloc_node(AST_FUNCTION);
 	node->node_value.function.name = name;
@@ -157,10 +213,19 @@ ASTNode *ast_function(const char *name, ASTNode *body)
 	return node;
 }
 
-ASTNode *ast_return_statement(ASTNode *exp)
+ASTNode *ast_statement(ASTStatementType type, ASTNode *exp)
 {
-	ASTNode *node = alloc_node(AST_RETURN_STATEMENT);
-	node->node_value.return_statement.expression = exp;
+	ASTNode *node = alloc_node(AST_STATEMENT);
+	node->node_value.statement.type = type;
+	node->node_value.statement.expression = exp;
+	return node;
+}
+
+ASTNode *ast_declaration(const char *name, ASTNode *init)
+{
+	ASTNode *node = alloc_node(AST_DECLARATION);
+	node->node_value.declaration.name = name;
+	node->node_value.declaration.init = init;
 	return node;
 }
 
@@ -185,5 +250,20 @@ ASTNode *ast_binary(ASTBinaryType type, ASTNode *left, ASTNode *right)
 	node->node_value.binary.type = type;
 	node->node_value.binary.left = left;
 	node->node_value.binary.right = right;
+	return node;
+}
+
+ASTNode *ast_variable(const char *identifier)
+{
+	ASTNode *node = alloc_node(AST_VARIABLE);
+	node->node_value.variable.identifier = identifier;
+	return node;
+}
+
+ASTNode *ast_assignment(ASTNode *left, ASTNode *right)
+{
+	ASTNode *node = alloc_node(AST_ASSIGNMENT);
+	node->node_value.assignment.left = left;
+	node->node_value.assignment.right = right;
 	return node;
 }

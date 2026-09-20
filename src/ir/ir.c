@@ -54,7 +54,7 @@ static void generate_function(IR *ir, ASTNode *fn)
 	IRBasicBlock fn_bb;
 	basic_block_init(&fn_bb);
 
-	generate_statement(&fn_bb, fn->node_value.function.body);
+	generate_statement(&fn_bb, *fn->node_value.function.body);
 
 	array_push(ir_fn.basic_blocks, fn_bb);
 	array_push(ir->functions, ir_fn);
@@ -62,17 +62,18 @@ static void generate_function(IR *ir, ASTNode *fn)
 
 static void generate_statement(IRBasicBlock *bb, ASTNode *stmt)
 {
-	switch (stmt->type) {
-		case AST_RETURN_STATEMENT:{
-			IROperand tmp = generate_expression(bb, stmt->node_value.return_statement.expression);
-			IRInstruction inst = IR_INSTRUCTION_RETURN(tmp);
+	if (stmt->type == AST_STATEMENT) {
+		switch (stmt->node_value.statement.type) {
+			case AST_STATEMENT_RETURN:{
+				IROperand tmp = generate_expression(bb, stmt->node_value.statement.expression);
+				IRInstruction inst = IR_INSTRUCTION_RETURN(tmp);
 
-			array_push(bb->instructions, inst);
-			return;
+				array_push(bb->instructions, inst);
+				return;
+			}
+			default: UNIMPLEMENTED("Unhandled statement type case");
 		}
-		default: UNIMPLEMENTED("Unhandled statement type case");
 	}
-
 }
 
 static IROperand generate_expression(IRBasicBlock *bb, ASTNode *expr)
