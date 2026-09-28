@@ -11,9 +11,10 @@ int main(int argc, char **argv)
 	ArgsContext ctx = args_init();
 
 	args_add_arg(&ctx, "lex", "Runs the lexer and stops before parsing", false);
-	args_add_arg(&ctx, "parse", "Runs the parser and stops before assembly generation", false);
-	args_add_arg(&ctx, "codegen", "Lexes, parses and generates assembly, but doesn't save it to a file", false);
-	args_add_arg(&ctx, "print", "Expects 'val' to be lexer/parser/ir/machine-ir/asm. Will print the output to stdout", true);
+	args_add_arg(&ctx, "parse", "Runs the parser and stops before semantic analysis", false);
+	args_add_arg(&ctx, "validate", "Runs the semantic analysis and stops before assembly generation", false);
+	args_add_arg(&ctx, "codegen", "Generates assembly, but doesn't save it to a file", false);
+	args_add_arg(&ctx, "print", "Expects 'val' to be lexer/parser/semantic/ir/machine-ir/asm. Will print the output to stdout", true);
 
 	if (argc < 2){
 		printf("%s [FILE] [FLAGS]\n", argv[0]);

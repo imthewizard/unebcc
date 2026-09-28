@@ -11,6 +11,7 @@
 #include "backend/x86_64/emitter.h"
 #include "assembler/assembler.h"
 #include "preprocessor/preprocessor.h"
+#include "semantic/semantic.h"
 
 #include "args.h"
 #include "utils/array.h"
@@ -18,7 +19,7 @@
 
 // Runs the preprocessing stage on the input and returns the preprocessed file
 static File preprocess(const ArgsContext *ctx);
-// Main compile pass: lexer, parser, and irs
+// Main compile pass: lexer, parser, semantic analysis and irs
 static void compile(const ArgsContext *ctx, File *input, IR *ir, x86_64Program *program);
 // Assembles the program
 static void assemble(const ArgsContext *ctx, x86_64Program *program);
@@ -27,6 +28,8 @@ static void assemble(const ArgsContext *ctx, x86_64Program *program);
 static Lexer lex(const char *buffer, unsigned int buffer_len, bool print);
 // Parses the lexer's array of tokens and creates an AST
 static Parser parse(const Lexer *lexer, bool print);
+// Runs a semantic analysis on the parser's AST and directly modifies it. Returns true if no errors occured
+static bool semantic(Parser *parser, bool print);
 // Generates an IR from the AST
 static IR generate_ir(const Parser *parser, bool print);
 // Generates a x86_64 based IR from the general IR
@@ -66,12 +69,14 @@ static void compile(const ArgsContext *ctx, File *input, IR *ir, x86_64Program *
 {
 	const bool print_lexer      = args_cmp_value(ctx, "print", "lexer");
 	const bool print_parser     = args_cmp_value(ctx, "print", "parser");
+	const bool print_semantic   = args_cmp_value(ctx, "print", "semantic");
 	const bool print_ir         = args_cmp_value(ctx, "print", "ir");
 	const bool print_machine_ir = args_cmp_value(ctx, "print", "machine-ir");
 
-	const bool only_lex     = args_has(ctx, "lex");
-	const bool only_parse   = args_has(ctx, "parse");
-	const bool only_codegen = args_has(ctx, "codegen");
+	const bool only_lex      = args_has(ctx, "lex");
+	const bool only_parse    = args_has(ctx, "parse");
+	const bool only_semantic = args_has(ctx, "validate");
+	const bool only_codegen  = args_has(ctx, "codegen");
 
 	char *file_buffer;
 	unsigned int buffer_len;
@@ -98,6 +103,17 @@ static void compile(const ArgsContext *ctx, File *input, IR *ir, x86_64Program *
 			exit(EXIT_FAILURE);
 		exit(EXIT_SUCCESS);
 	}
+	if (!semantic(&parser, print_semantic)) {
+		file_close(input);
+		file_remove(input);
+		lexer_deinit(&lexer);
+		parser_deinit(&parser);
+		semantic_free_allocated();
+		exit(EXIT_FAILURE);
+	}
+	if (only_semantic) {
+		exit(EXIT_SUCCESS);
+	}
 
 	*ir = generate_ir(&parser, print_ir);
 	*program = generate_machine_ir(ir, print_machine_ir);
@@ -107,6 +123,7 @@ static void compile(const ArgsContext *ctx, File *input, IR *ir, x86_64Program *
 	// ir_deinit(&ir);
 	parser_deinit(&parser);
 	lexer_deinit(&lexer);
+	semantic_free_allocated();
 
 	if (only_codegen) exit(EXIT_SUCCESS);
 
@@ -160,6 +177,15 @@ static Parser parse(const Lexer *lexer, bool print)
 		ast_print(parser.ast, 0);
 	}
 	return parser;
+}
+
+static bool semantic(Parser *parser, bool print)
+{
+	bool ok = semantic_analysis(parser->ast);
+	if (ok && print) {
+		ast_print(parser->ast, 0);
+	}
+	return ok;
 }
 
 static IR generate_ir(const Parser *parser, bool print)
