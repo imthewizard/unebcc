@@ -7,45 +7,35 @@
 #include "utils/array.h"
 #include "utils/debug.h"
 
-static x86_64Function create_fn(const IRInstruction *insts);
-static void create_inst(x86_64Function *fn, const IRInstruction *inst);
+static void create_inst(x86_64Program *prog, const IRInstruction *inst);
 
 /// Generic unary instructions
-static void generic_unary(x86_64Function *fn, const IRInstruction *inst);
+static void generic_unary(x86_64Program *prog, const IRInstruction *inst);
 /// Generic binary instructions
-static void generic_binary(x86_64Function *fn, const IRInstruction *inst);
+static void generic_binary(x86_64Program *prog, const IRInstruction *inst);
 /// Specific generation for division and remainder
-static void generic_binary_div_rem(x86_64Function *fn, const IRInstruction *inst);
+static void generic_binary_div_rem(x86_64Program *prog, const IRInstruction *inst);
 /// Specific generation for jumps
-static void generic_jump(x86_64Function *fn, const IRInstruction *inst);
+static void generic_jump(x86_64Program *prog, const IRInstruction *inst);
 /// Specific generation for conditionals
-static void generic_conditional(x86_64Function *fn, const IRInstruction *inst);
+static void generic_conditional(x86_64Program *prog, const IRInstruction *inst);
 /// Specific generation for ir_copy
-static void generic_copy(x86_64Function *fn, const IRInstruction *inst);
+static void generic_copy(x86_64Program *prog, const IRInstruction *inst);
 /// Specific generation for ir_label
-static void handle_label(x86_64Function *fn, const IRInstruction *inst);
+static void handle_label(x86_64Program *prog, const IRInstruction *inst);
 
 void x86_64_create_prog(const IRInstruction *instructions, x86_64Program *prog)
 {
 	ASSERT(prog != NULL, "null program");
 
-	x86_64Function fn = create_fn(instructions);
-	array_push(prog->functions, fn);
+	for (int i = 0; i < array_length(instructions); i++) {
+		create_inst(prog, &instructions[i]);
+	}
 
 	x86_64_regalloc(prog);
 }
 
-static x86_64Function create_fn(const IRInstruction *insts)
-{
-	// TODO: name
-	x86_64Function x86_fn = x86_64_function_init("main");
-	for (int i = 0; i < array_length(insts); i++) {
-		create_inst(&x86_fn, &insts[i]);
-	}
-	return x86_fn;
-}
-
-static void create_inst(x86_64Function *fn, const IRInstruction *inst)
+static void create_inst(x86_64Program *prog, const IRInstruction *inst)
 {
 	switch (inst->type) {
 		case IR_RETURN: {
@@ -54,13 +44,13 @@ static void create_inst(x86_64Function *fn, const IRInstruction *inst)
 				x86_64_ir_operand(&inst->src1)
 			);
 			x86_64Instruction ret = X64_INSTRUCTION_NO_OPS(X86_64_RET);
-			array_push(fn->instructions, mov);
-			array_push(fn->instructions, ret);
+			array_push(prog->instructions, mov);
+			array_push(prog->instructions, ret);
 			return;
 		}
 		case IR_BITWISE_NOT:
 		case IR_NEGATE:
-			generic_unary(fn, inst); break;
+			generic_unary(prog, inst); break;
 
 		case IR_ADD:
 		case IR_SUBTRACT:
@@ -70,7 +60,7 @@ static void create_inst(x86_64Function *fn, const IRInstruction *inst)
 		case IR_BITWISE_XOR:
 		case IR_LEFT_SHIFT:
 		case IR_RIGHT_SHIFT:
-			generic_binary(fn, inst); break;
+			generic_binary(prog, inst); break;
 
 		case IR_LOGICAL_NOT:
 		case IR_LOGICAL_EQUAL:
@@ -79,28 +69,28 @@ static void create_inst(x86_64Function *fn, const IRInstruction *inst)
 		case IR_LOGICAL_GREATER_THAN:
 		case IR_LOGICAL_GREATER_EQUAL:
 		case IR_LOGICAL_NOT_EQUAL:
-			generic_conditional(fn, inst); break;
+			generic_conditional(prog, inst); break;
 
 		case IR_COPY:
-			generic_copy(fn, inst); break;
+			generic_copy(prog, inst); break;
 
 		case IR_DIVIDE:
 		case IR_REMAINDER:
-			generic_binary_div_rem(fn, inst); break;
+			generic_binary_div_rem(prog, inst); break;
 
 		case IR_JUMP:
 		case IR_JUMP_ZERO:
 		case IR_JUMP_NOT_ZERO:
-			generic_jump(fn, inst); break;
+			generic_jump(prog, inst); break;
 
 		case IR_LABEL:
-			handle_label(fn, inst); break;
+			handle_label(prog, inst); break;
 
 		default: UNIMPLEMENTED("Unhandled instruction type case");
 	}
 }
 
-static void generic_unary(x86_64Function *fn, const IRInstruction *inst)
+static void generic_unary(x86_64Program *prog, const IRInstruction *inst)
 {
 	x86_64Mnemonics mnemonic;
 	switch (inst->type) {
@@ -117,12 +107,12 @@ static void generic_unary(x86_64Function *fn, const IRInstruction *inst)
 	x86_64Instruction unary = X64_INSTRUCTION_UNARY(mnemonic,
 		X64_OPERAND_PSEUDO(inst->dest_id)
 	);
-	array_push(fn->instructions, mov);
-	array_push(fn->instructions, unary);
+	array_push(prog->instructions, mov);
+	array_push(prog->instructions, unary);
 	return;
 }
 
-static void generic_binary(x86_64Function *fn, const IRInstruction *inst)
+static void generic_binary(x86_64Program *prog, const IRInstruction *inst)
 {
 	x86_64Mnemonics mnemonic;
 	switch (inst->type) {
@@ -146,12 +136,12 @@ static void generic_binary(x86_64Function *fn, const IRInstruction *inst)
 		X64_OPERAND_PSEUDO(inst->dest_id),
 		x86_64_ir_operand(&inst->src2)
 	);
-	array_push(fn->instructions, mov);
-	array_push(fn->instructions, binary);
+	array_push(prog->instructions, mov);
+	array_push(prog->instructions, binary);
 	return;
 }
 
-static void generic_binary_div_rem(x86_64Function *fn, const IRInstruction *inst)
+static void generic_binary_div_rem(x86_64Program *prog, const IRInstruction *inst)
 {
 	x86_64Operand reg_op;
 	switch (inst->type) {
@@ -171,15 +161,15 @@ static void generic_binary_div_rem(x86_64Function *fn, const IRInstruction *inst
 		X64_OPERAND_PSEUDO(inst->dest_id),
 		reg_op
 	);
-	array_push(fn->instructions, mov1);
-	array_push(fn->instructions, cdq);
-	array_push(fn->instructions, idiv);
-	array_push(fn->instructions, mov2);
+	array_push(prog->instructions, mov1);
+	array_push(prog->instructions, cdq);
+	array_push(prog->instructions, idiv);
+	array_push(prog->instructions, mov2);
 	return;
 
 }
 
-static void generic_jump(x86_64Function *fn, const IRInstruction *inst)
+static void generic_jump(x86_64Program *prog, const IRInstruction *inst)
 {
 	if (inst->type == IR_JUMP_ZERO) {
 		char *label_target = inst->src2.label;
@@ -190,8 +180,8 @@ static void generic_jump(x86_64Function *fn, const IRInstruction *inst)
 		x86_64Instruction je = X64_INSTRUCTION_JUMP(X86_64_JE,
 			label_target
 		);
-		array_push(fn->instructions, cmp);
-		array_push(fn->instructions, je);
+		array_push(prog->instructions, cmp);
+		array_push(prog->instructions, je);
 		return;
 	}
 	if (inst->type == IR_JUMP_NOT_ZERO) {
@@ -203,8 +193,8 @@ static void generic_jump(x86_64Function *fn, const IRInstruction *inst)
 		x86_64Instruction jne = X64_INSTRUCTION_JUMP(X86_64_JNE,
 			label_target
 		);
-		array_push(fn->instructions, cmp);
-		array_push(fn->instructions, jne);
+		array_push(prog->instructions, cmp);
+		array_push(prog->instructions, jne);
 		return;
 	}
 	if (inst->type == IR_JUMP) {
@@ -212,14 +202,14 @@ static void generic_jump(x86_64Function *fn, const IRInstruction *inst)
 		x86_64Instruction jmp = X64_INSTRUCTION_JUMP(X86_64_JMP,
 			label_target
 		);
-		array_push(fn->instructions, jmp);
+		array_push(prog->instructions, jmp);
 		return;
 	}
 
 	ASSERT(0, "unhandled jump case");
 }
 
-static void generic_conditional(x86_64Function *fn, const IRInstruction *inst)
+static void generic_conditional(x86_64Program *prog, const IRInstruction *inst)
 {
 	x86_64Instruction cmp;
 	if (inst->type != IR_LOGICAL_NOT) {
@@ -255,24 +245,24 @@ static void generic_conditional(x86_64Function *fn, const IRInstruction *inst)
 		X64_OPERAND_PSEUDO(inst->dest_id)
 	);
 
-	array_push(fn->instructions, cmp);
-	array_push(fn->instructions, mov);
-	array_push(fn->instructions, setcc);
+	array_push(prog->instructions, cmp);
+	array_push(prog->instructions, mov);
+	array_push(prog->instructions, setcc);
 }
 
-static void generic_copy(x86_64Function *fn, const IRInstruction *inst)
+static void generic_copy(x86_64Program *prog, const IRInstruction *inst)
 {
 	ASSERT(inst->type == IR_COPY, "type is not IR_COPY");
 	x86_64Instruction mov = X64_INSTRUCTION_BINARY(X86_64_MOV,
 		X64_OPERAND_PSEUDO(inst->src1.value),
 		x86_64_ir_operand(&inst->src2)
 	);
-	array_push(fn->instructions, mov);
+	array_push(prog->instructions, mov);
 }
 
-static void handle_label(x86_64Function *fn, const IRInstruction *inst)
+static void handle_label(x86_64Program *prog, const IRInstruction *inst)
 {
 	ASSERT(inst->type == IR_LABEL, "type is not IR_LABEL");
 	x86_64Instruction label = X64_INSTRUCTION_DEFINE_LABEL(inst->src1.label);
-	array_push(fn->instructions, label);
+	array_push(prog->instructions, label);
 }

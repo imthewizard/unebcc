@@ -14,14 +14,11 @@ static void emit_instruction(FILE *file, const x86_64Instruction *inst);
 void x86_64_emit(FILE *file, const x86_64Program *prog)
 {
 	print_setup(file);
-	for (int i = 0; i < array_length(prog->functions); i++) {
-		x86_64Function *fn = &prog->functions[i];
 
-		fprintf(file, "%s:\n", fn->name);
-		for (int j = 0; j < array_length(fn->instructions); j++) {
-			x86_64Instruction *inst = &fn->instructions[j];
-			emit_instruction(file, inst);
-		}
+	fprintf(file, "main:\n");
+	for (int j = 0; j < array_length(prog->instructions); j++) {
+		x86_64Instruction *inst = &prog->instructions[j];
+		emit_instruction(file, inst);
 	}
 	print_end(file);
 }

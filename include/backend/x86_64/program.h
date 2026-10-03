@@ -1,10 +1,11 @@
 #ifndef UNEBCC_X86_64_PROGRAM_H
 #define UNEBCC_X86_64_PROGRAM_H
 
-#include "function.h"
+#include "x86_64.h"
+
 
 typedef struct x86_64Program {
-	x86_64Function *functions;
+	x86_64Instruction *instructions;
 }x86_64Program;
 
 // Creates a program
