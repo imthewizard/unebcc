@@ -25,9 +25,9 @@ static void compile(const ArgsContext *ctx, File *input, IR *ir, x86_64Program *
 static void assemble(const ArgsContext *ctx, x86_64Program *program);
 
 // Lexes a buffer
-static Lexer lex(const char *buffer, unsigned int buffer_len, bool print);
+static void lex(const char *buffer, unsigned int buffer_len, bool print);
 // Parses the lexer's array of tokens and creates an AST
-static Parser parse(const Lexer *lexer, bool print);
+static Parser parse(bool print);
 // Runs a semantic analysis on the parser's AST and directly modifies it. Returns true if no errors occured
 static bool semantic(Parser *parser, bool print);
 // Generates an IR from the AST
@@ -82,22 +82,22 @@ static void compile(const ArgsContext *ctx, File *input, IR *ir, x86_64Program *
 	unsigned int buffer_len;
 	file_to_buffer(input, &file_buffer, &buffer_len);
 
-	Lexer lexer = lex(file_buffer, buffer_len, print_lexer);
+	lex(file_buffer, buffer_len, print_lexer);
 	if (only_lex) {
 		file_close(input);
 		file_remove(input);
-		lexer_deinit(&lexer);
-		if (lexer.had_error) exit(EXIT_FAILURE);
+		lexer_deinit();
+		if (lexer_had_error()) exit(EXIT_FAILURE);
 		exit(EXIT_SUCCESS);
 	}
 
 	free(file_buffer);
 
-	Parser parser = parse(&lexer, print_parser);
+	Parser parser = parse(print_parser);
 	if ((parser.had_error) || (only_parse)) {
 		file_close(input);
 		file_remove(input);
-		lexer_deinit(&lexer);
+		lexer_deinit();
 		parser_deinit(&parser);
 		if (parser.had_error)
 			exit(EXIT_FAILURE);
@@ -106,7 +106,7 @@ static void compile(const ArgsContext *ctx, File *input, IR *ir, x86_64Program *
 	if (!semantic(&parser, print_semantic)) {
 		file_close(input);
 		file_remove(input);
-		lexer_deinit(&lexer);
+		lexer_deinit();
 		parser_deinit(&parser);
 		semantic_free_allocated();
 		exit(EXIT_FAILURE);
@@ -122,7 +122,7 @@ static void compile(const ArgsContext *ctx, File *input, IR *ir, x86_64Program *
 	file_remove(input);
 	// ir_deinit(&ir);
 	parser_deinit(&parser);
-	lexer_deinit(&lexer);
+	lexer_deinit();
 	semantic_free_allocated();
 
 	if (only_codegen) exit(EXIT_SUCCESS);
@@ -154,24 +154,22 @@ static void assemble(const ArgsContext *ctx, x86_64Program *program)
 	}
 }
 
-static Lexer lex(const char *buffer, unsigned int buffer_len, bool print)
+static void lex(const char *buffer, unsigned int buffer_len, bool print)
 {
-	Lexer lexer;
-	lexer_init(&lexer, buffer, buffer_len);
-	lexer_scan_tokens(&lexer);
+	lexer_init(buffer, buffer_len);
+	lexer_scan_tokens();
 	if (print) {
-		const Token *token_arr = lexer.token_array;
+		const Token *token_arr = lexer_get_token_array();
 		for (int i = 0; i < array_length(token_arr); i++) {
 			print_token(&token_arr[i]);
 		}
 	}
-	return lexer;
 }
 
-static Parser parse(const Lexer *lexer, bool print)
+static Parser parse(bool print)
 {
 	Parser parser;
-	parser_init(&parser, lexer->token_array);
+	parser_init(&parser, lexer_get_token_array());
 	parser_parse(&parser);
 	if (print) {
 		ast_print(parser.ast, 0);
