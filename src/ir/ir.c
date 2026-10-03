@@ -1,8 +1,6 @@
 #include <stdbool.h>
 
 #include "ir/ir.h"
-#include "ir/basic_block.h"
-#include "ir/function.h"
 #include "ir/instruction.h"
 
 #include "parser/ast.h"
@@ -12,27 +10,27 @@
 #include "utils/stringmap.h"
 
 typedef struct IR {
-	IRFunction *functions;
+	IRInstruction *instructions;
 
 	StringMap variable_to_temp;
 }IR;
 IR *ir = NULL;
 
 static void generate_function(const ASTNode *fn); // generate ir for function
-static void generate_statement(IRBasicBlock *bb, const ASTNode *stmt); // generate ir for statement
-static IROperand generate_expression(IRBasicBlock *bb, const ASTNode *expr); // generate ir for expression
+static void generate_statement(const ASTNode *stmt); // generate ir for statement
+static IROperand generate_expression(const ASTNode *expr); // generate ir for expression
 
-static IROperand handle_binary_simple(IRBasicBlock *bb, const ASTNode *expr);
-static IROperand handle_binary_relational(IRBasicBlock *bb, const ASTNode *expr);
-static IROperand handle_binary_short_circuit(IRBasicBlock *bb, const ASTNode *expr);
+static IROperand handle_binary_simple(const ASTNode *expr);
+static IROperand handle_binary_relational(const ASTNode *expr);
+static IROperand handle_binary_short_circuit(const ASTNode *expr);
 
 // Hacky
 StringMap *var_to_temp;
 
 void ir_print(void)
 {
-	for (int i = 0; i < array_length(ir->functions); i++) {
-		function_print(&ir->functions[i]);
+	for (int i = 0; i < array_length(ir->instructions); i++) {
+		instruction_print(&ir->instructions[i]);
 	}
 	printf("\n");
 }
@@ -42,7 +40,7 @@ void ir_init(void)
 	ASSERT(ir == NULL, "ir was already initialized");
 	ir = malloc(sizeof(IR));
 
-	ir->functions = array_create(ir->functions, 1);
+	ir->instructions = array_create(ir->instructions, 1);
 	ir->variable_to_temp = string_map_init();
 	var_to_temp = &ir->variable_to_temp;
 }
@@ -50,11 +48,11 @@ void ir_init(void)
 void ir_deinit(void)
 {
 	if (ir != NULL) {
-		if (ir->functions == NULL) return;
-		for (int i = 0; i < array_length(ir->functions); i++) {
-			function_deinit(&ir->functions[i]);
+		if (ir->instructions == NULL) return;
+		for (int i = 0; i < array_length(ir->instructions); i++) {
+			instruction_free(&ir->instructions[i]);
 		}
-		array_free(ir->functions);
+		array_free(ir->instructions);
 
 		StringMapIterator it = string_map_iterator(&ir->variable_to_temp);
 		while(string_map_next(&it)) {
@@ -71,28 +69,22 @@ void ir_generate(const ASTNode *ast)
 	generate_function(ast->node_value.program.function);
 }
 
-IRFunction *ir_get_functions(void)
+IRInstruction *ir_get_instructions(void)
 {
-	return ir->functions;
+	return ir->instructions;
 }
 
 static void generate_function(const ASTNode *fn)
 {
-	IRFunction ir_fn;
-	function_init(&ir_fn);
-
-	IRBasicBlock fn_bb;
-	basic_block_init(&fn_bb);
-
 	bool had_return = false;
 	for (int i = 0; i < array_length(fn->node_value.function.body); i++) {
 		ASTNode *node = fn->node_value.function.body[i];
 		if (node->type == AST_STATEMENT) {
 			if (node->node_value.statement.type == AST_STATEMENT_RETURN)
 				had_return = true;
-			generate_statement(&fn_bb, node);
+			generate_statement(node);
 		} else {
-			generate_expression(&fn_bb, node);
+			generate_expression(node);
 		}
 	}
 	if (!had_return) {
@@ -100,23 +92,20 @@ static void generate_function(const ASTNode *fn)
 		IROperand temp = IR_OPERAND_CREATE_TEMP();
 		IRInstruction copy = IR_INSTRUCTION_COPY_CONST(temp.value, 0);
 		IRInstruction ret = IR_INSTRUCTION_RETURN(temp);
-		array_push(fn_bb.instructions, copy);
-		array_push(fn_bb.instructions, ret);
+		array_push(ir->instructions, copy);
+		array_push(ir->instructions, ret);
 	}
-
-	array_push(ir_fn.basic_blocks, fn_bb);
-	array_push(ir->functions, ir_fn);
 }
 
-static void generate_statement(IRBasicBlock *bb, const ASTNode *stmt)
+static void generate_statement(const ASTNode *stmt)
 {
 	if (stmt->type == AST_STATEMENT) {
 		switch (stmt->node_value.statement.type) {
 			case AST_STATEMENT_RETURN:{
-				IROperand tmp = generate_expression(bb, stmt->node_value.statement.expression);
+				IROperand tmp = generate_expression(stmt->node_value.statement.expression);
 				IRInstruction inst = IR_INSTRUCTION_RETURN(tmp);
 
-				array_push(bb->instructions, inst);
+				array_push(ir->instructions, inst);
 				return;
 			}
 			case AST_STATEMENT_NULL_EXPRESSION: return;
@@ -125,7 +114,7 @@ static void generate_statement(IRBasicBlock *bb, const ASTNode *stmt)
 	}
 }
 
-static IROperand generate_expression(IRBasicBlock *bb, const ASTNode *expr)
+static IROperand generate_expression(const ASTNode *expr)
 {
 	switch (expr->type) {
 		case AST_INT_LITERAL:{
@@ -133,21 +122,21 @@ static IROperand generate_expression(IRBasicBlock *bb, const ASTNode *expr)
 			return IR_OPERAND_CREATE(IR_OPERAND_CONST, val);
 		}
 		case AST_UNARY:{
-			IROperand inner_op = generate_expression(bb, expr->node_value.unary.expression);
+			IROperand inner_op = generate_expression(expr->node_value.unary.expression);
 			switch (expr->node_value.unary.type) {
 				case AST_UNARY_BITWISE_NOT:{
 					IRInstruction inst = ir_instruction_unary(IR_BITWISE_NOT, &inner_op);
-					array_push(bb->instructions, inst);
+					array_push(ir->instructions, inst);
 					return IR_OPERAND_CREATE(IR_OPERAND_TEMP, inst.dest_id);
 				}
 				case AST_UNARY_NEGATE:{
 					IRInstruction inst = ir_instruction_unary(IR_NEGATE, &inner_op);
-					array_push(bb->instructions, inst);
+					array_push(ir->instructions, inst);
 					return IR_OPERAND_CREATE(IR_OPERAND_TEMP, inst.dest_id);
 				}
 				case AST_UNARY_LOGICAL_NOT:{
 					IRInstruction inst = ir_instruction_unary(IR_LOGICAL_NOT, &inner_op);
-					array_push(bb->instructions, inst);
+					array_push(ir->instructions, inst);
 					return IR_OPERAND_CREATE(IR_OPERAND_TEMP, inst.dest_id);
 				}
 
@@ -167,7 +156,7 @@ static IROperand generate_expression(IRBasicBlock *bb, const ASTNode *expr)
 				case AST_BINARY_BITWISE_XOR:
 				case AST_BINARY_LEFT_SHIFT:
 				case AST_BINARY_RIGHT_SHIFT:
-					return handle_binary_simple(bb, expr);
+					return handle_binary_simple(expr);
 
 				case AST_BINARY_LOGICAL_EQUAL:
 				case AST_BINARY_LOGICAL_NOT_EQUAL:
@@ -175,11 +164,11 @@ static IROperand generate_expression(IRBasicBlock *bb, const ASTNode *expr)
 				case AST_BINARY_LOGICAL_GREATER_THAN:
 				case AST_BINARY_LOGICAL_LESS_EQUAL:
 				case AST_BINARY_LOGICAL_GREATER_EQUAL:
-					return handle_binary_relational(bb, expr);
+					return handle_binary_relational(expr);
 
 				case AST_BINARY_LOGICAL_AND:
 				case AST_BINARY_LOGICAL_OR:
-					return handle_binary_short_circuit(bb, expr);
+					return handle_binary_short_circuit(expr);
 
 				default: UNIMPLEMENTED("Unhandled binary case");
 			}
@@ -190,9 +179,9 @@ static IROperand generate_expression(IRBasicBlock *bb, const ASTNode *expr)
 		case AST_DECLARATION:{
 			if (expr->node_value.declaration.init != NULL) {
 				IROperand lhs = ir_temp_from_variable(expr->node_value.declaration.name, var_to_temp);
-				IROperand rhs = generate_expression(bb, expr->node_value.declaration.init);
+				IROperand rhs = generate_expression(expr->node_value.declaration.init);
 				IRInstruction copy = ir_instruction_copy(&lhs, &rhs);
-				array_push(bb->instructions, copy);
+				array_push(ir->instructions, copy);
 				return IR_OPERAND_CREATE(IR_OPERAND_TEMP, copy.dest_id);
 			}
 			// a bit hacky, but this won't be used
@@ -200,11 +189,10 @@ static IROperand generate_expression(IRBasicBlock *bb, const ASTNode *expr)
 		}
 		case AST_ASSIGNMENT:{
 			ASSERT(expr->node_value.assignment.left->type == AST_VARIABLE, "invalid lhs");
-			IROperand lhs = generate_expression(bb, expr->node_value.assignment.left);
-			IROperand rhs = generate_expression(bb, expr->node_value.assignment.right);
+			IROperand lhs = generate_expression(expr->node_value.assignment.left);
+			IROperand rhs = generate_expression(expr->node_value.assignment.right);
 			IRInstruction copy = ir_instruction_copy(&lhs, &rhs);
-			array_push(bb->instructions, copy);
-			// return IR_OPERAND_CREATE(IR_OPERAND_TEMP, copy.dest_id);
+			array_push(ir->instructions, copy);
 			return lhs;
 		}
 
@@ -212,10 +200,10 @@ static IROperand generate_expression(IRBasicBlock *bb, const ASTNode *expr)
 	}
 }
 
-static IROperand handle_binary_simple(IRBasicBlock *bb, const ASTNode *expr)
+static IROperand handle_binary_simple(const ASTNode *expr)
 {
-	IROperand left = generate_expression(bb, expr->node_value.binary.left);
-	IROperand right = generate_expression(bb, expr->node_value.binary.right);
+	IROperand left = generate_expression(expr->node_value.binary.left);
+	IROperand right = generate_expression(expr->node_value.binary.right);
 
 	IRInstructionType type;
 
@@ -235,14 +223,14 @@ static IROperand handle_binary_simple(IRBasicBlock *bb, const ASTNode *expr)
 	}
 
 	IRInstruction inst = ir_instruction_binary(type, &left, &right);
-	array_push(bb->instructions, inst);
+	array_push(ir->instructions, inst);
 	return IR_OPERAND_CREATE(IR_OPERAND_TEMP, inst.dest_id);
 }
 
-static IROperand handle_binary_relational(IRBasicBlock *bb, const ASTNode *expr)
+static IROperand handle_binary_relational(const ASTNode *expr)
 {
-	IROperand left = generate_expression(bb, expr->node_value.binary.left);
-	IROperand right = generate_expression(bb, expr->node_value.binary.right);
+	IROperand left = generate_expression(expr->node_value.binary.left);
+	IROperand right = generate_expression(expr->node_value.binary.right);
 
 	IRInstructionType type;
 	switch (expr->node_value.binary.type) {
@@ -257,11 +245,11 @@ static IROperand handle_binary_relational(IRBasicBlock *bb, const ASTNode *expr)
 	}
 
 	IRInstruction inst = ir_instruction_binary(type, &left, &right);
-	array_push(bb->instructions, inst);
+	array_push(ir->instructions, inst);
 	return IR_OPERAND_CREATE(IR_OPERAND_TEMP, inst.dest_id);
 }
 
-static IROperand handle_binary_short_circuit(IRBasicBlock *bb, const ASTNode *expr)
+static IROperand handle_binary_short_circuit(const ASTNode *expr)
 {
 	ASSERT(expr->node_value.binary.type == AST_BINARY_LOGICAL_AND ||
 			expr->node_value.binary.type == AST_BINARY_LOGICAL_OR,
@@ -279,28 +267,28 @@ static IROperand handle_binary_short_circuit(IRBasicBlock *bb, const ASTNode *ex
 	int copy1_val = is_and ? 1 : 0;
 	int copy2_val = copy1_val == 1 ? 0 : 1;
 
-	IROperand left = generate_expression(bb, expr->node_value.binary.left);
+	IROperand left = generate_expression(expr->node_value.binary.left);
 	IRInstruction jump_cond1 = ir_instruction_branch_condition(jump_type, &left, cond_label_name);
-	array_push(bb->instructions, jump_cond1);
+	array_push(ir->instructions, jump_cond1);
 
-	IROperand right = generate_expression(bb, expr->node_value.binary.right);
+	IROperand right = generate_expression(expr->node_value.binary.right);
 	IRInstruction jump_cond2 = ir_instruction_branch_condition(jump_type, &right, cond_label_name);
-	array_push(bb->instructions, jump_cond2);
+	array_push(ir->instructions, jump_cond2);
 
 	IRInstruction copy_1 = IR_INSTRUCTION_COPY_CONST(temp.value, copy1_val);
-	array_push(bb->instructions, copy_1);
+	array_push(ir->instructions, copy_1);
 
 	IRInstruction jump_end = ir_instruction_branch_always(IR_JUMP, end_label_name);
-	array_push(bb->instructions, jump_end);
+	array_push(ir->instructions, jump_end);
 
 	IRInstruction cond_label = ir_instruction_label(cond_label_name);
-	array_push(bb->instructions, cond_label);
+	array_push(ir->instructions, cond_label);
 
 	IRInstruction copy_2 = IR_INSTRUCTION_COPY_CONST(temp.value, copy2_val);
-	array_push(bb->instructions, copy_2);
+	array_push(ir->instructions, copy_2);
 
 	IRInstruction end_label = ir_instruction_label(end_label_name);
-	array_push(bb->instructions, end_label);
+	array_push(ir->instructions, end_label);
 
 	free(end_label_name);
 	free(cond_label_name);

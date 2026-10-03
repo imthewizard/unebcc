@@ -107,6 +107,16 @@ void instruction_print(const IRInstruction *inst)
 	}
 }
 
+void instruction_free(IRInstruction *inst)
+{
+	if (inst->src1.type == IR_OPERAND_LABEL && inst->src1.label != NULL) {
+		free(inst->src1.label);
+	}
+	if (inst->src2.type == IR_OPERAND_LABEL && inst->src2.label != NULL) {
+		free(inst->src2.label);
+	}
+}
+
 IRTemporaryID instruction_generate_id(void)
 {
 	static IRTemporaryID counter = 0;

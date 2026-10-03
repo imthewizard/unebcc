@@ -60,6 +60,8 @@ typedef struct IRInstruction {
 
 // Prints the instruction
 void instruction_print(const IRInstruction *inst);
+// If the instruction has label operands, frees them.
+void instruction_free(IRInstruction *inst);
 
 // Returns a new unique temporary id
 IRTemporaryID instruction_generate_id(void);

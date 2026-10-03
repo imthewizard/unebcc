@@ -3,13 +3,11 @@
 #include "backend/x86_64/regalloc.h"
 
 #include "ir/instruction.h"
-#include "ir/ir.h"
 
 #include "utils/array.h"
 #include "utils/debug.h"
 
-static x86_64Function create_fn(const IRFunction *fn);
-static void create_bb(x86_64Function *fn, const IRBasicBlock *bb);
+static x86_64Function create_fn(const IRInstruction *insts);
 static void create_inst(x86_64Function *fn, const IRInstruction *inst);
 
 /// Generic unary instructions
@@ -27,33 +25,24 @@ static void generic_copy(x86_64Function *fn, const IRInstruction *inst);
 /// Specific generation for ir_label
 static void handle_label(x86_64Function *fn, const IRInstruction *inst);
 
-void x86_64_create_prog(const IRFunction *functions, x86_64Program *prog)
+void x86_64_create_prog(const IRInstruction *instructions, x86_64Program *prog)
 {
 	ASSERT(prog != NULL, "null program");
 
-	for (int i = 0; i < array_length(functions); i++) {
-		x86_64Function fn = create_fn(&functions[i]);
-		array_push(prog->functions, fn);
-	}
+	x86_64Function fn = create_fn(instructions);
+	array_push(prog->functions, fn);
 
 	x86_64_regalloc(prog);
 }
 
-static x86_64Function create_fn(const IRFunction *fn)
+static x86_64Function create_fn(const IRInstruction *insts)
 {
 	// TODO: name
 	x86_64Function x86_fn = x86_64_function_init("main");
-	for (int i = 0; i < array_length(fn->basic_blocks); i++) {
-		create_bb(&x86_fn, &fn->basic_blocks[i]);
+	for (int i = 0; i < array_length(insts); i++) {
+		create_inst(&x86_fn, &insts[i]);
 	}
 	return x86_fn;
-}
-
-static void create_bb(x86_64Function *fn, const IRBasicBlock *bb)
-{
-	for (int i = 0; i < array_length(bb->instructions); i++) {
-		create_inst(fn, &bb->instructions[i]);
-	}
 }
 
 static void create_inst(x86_64Function *fn, const IRInstruction *inst)

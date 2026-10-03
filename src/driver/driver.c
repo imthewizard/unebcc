@@ -33,7 +33,7 @@ static bool semantic(ASTNode *ast, bool print);
 // Generates an IR from the AST
 static void generate_ir(const ASTNode *ast, bool print);
 // Generates a x86_64 based IR from the general IR
-static x86_64Program generate_machine_ir(const IRFunction *fns, bool print);
+static x86_64Program generate_machine_ir(const IRInstruction *insts, bool print);
 // Generates assembly code from the machine IR and sends it to a file
 static File emit_assembly(const char *filename, const x86_64Program *prog, bool print);
 
@@ -108,7 +108,7 @@ static void compile(const ArgsContext *ctx, File *input, x86_64Program *program)
 	}
 
 	generate_ir(parser_get_ast(), print_ir);
-	*program = generate_machine_ir(ir_get_functions(), print_machine_ir);
+	*program = generate_machine_ir(ir_get_instructions(), print_machine_ir);
 
 	if (only_codegen)
 		can_exit = true;
@@ -187,10 +187,10 @@ static void generate_ir(const ASTNode *ast, bool print)
 	}
 }
 
-static x86_64Program generate_machine_ir(const IRFunction *fns, bool print)
+static x86_64Program generate_machine_ir(const IRInstruction *insts, bool print)
 {
 	x86_64Program prog = x86_64_program_init();
-	x86_64_create_prog(fns, &prog);
+	x86_64_create_prog(insts, &prog);
 	if (print) {
 		x86_64_program_print(&prog);
 	}
