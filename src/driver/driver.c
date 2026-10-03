@@ -80,49 +80,48 @@ static void compile(const ArgsContext *ctx, File *input, x86_64Program *program)
 	unsigned int buffer_len;
 	file_to_buffer(input, &file_buffer, &buffer_len);
 
-	lex(file_buffer, buffer_len, print_lexer);
-	if (only_lex) {
-		file_close(input);
-		file_remove(input);
-		lexer_deinit();
-		if (lexer_had_error()) exit(EXIT_FAILURE);
-		exit(EXIT_SUCCESS);
-	}
+	bool can_exit = false;
+	bool had_error = false;
 
+	lex(file_buffer, buffer_len, print_lexer);
+	if (lexer_had_error()) had_error = true;
 	free(file_buffer);
+	if (only_lex) {
+		can_exit = true;
+		goto cleanup;
+	}
 
 	parse(lexer_get_token_array(), print_parser);
-	if ((parser_had_error()) || (only_parse)) {
-		file_close(input);
-		file_remove(input);
-		lexer_deinit();
-		parser_deinit();
-		if (parser_had_error())
-			exit(EXIT_FAILURE);
-		exit(EXIT_SUCCESS);
+	if (parser_had_error()) had_error = true;
+	if (only_parse) {
+		can_exit = true;
+		goto cleanup;
 	}
+
 	if (!semantic(parser_get_ast(), print_semantic)) {
-		file_close(input);
-		file_remove(input);
-		lexer_deinit();
-		parser_deinit();
-		semantic_free_allocated();
-		exit(EXIT_FAILURE);
+		can_exit = true;
+		had_error = true;
 	}
-	if (only_semantic) {
-		exit(EXIT_SUCCESS);
+	if (only_semantic || had_error) {
+		can_exit = true;
+		goto cleanup;
 	}
 
 	generate_ir(parser_get_ast(), print_ir);
 	*program = generate_machine_ir(ir_get_functions(), print_machine_ir);
 
+	if (only_codegen)
+		can_exit = true;
+
+cleanup:
 	file_close(input);
 	file_remove(input);
 	parser_deinit();
 	lexer_deinit();
 	semantic_free_allocated();
 
-	if (only_codegen) exit(EXIT_SUCCESS);
+	if (can_exit)
+		exit(had_error ? EXIT_FAILURE : EXIT_SUCCESS);
 }
 
 static void assemble(const ArgsContext *ctx, x86_64Program *program)
