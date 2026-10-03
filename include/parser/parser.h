@@ -1,25 +1,21 @@
-#ifndef UNEBCC_PARSER_H
-#define UNEBCC_PARSER_H
+#ifndef UNEBCC_PARSER_PARSER_H
+#define UNEBCC_PARSER_PARSER_H
 
 #include <stdbool.h>
 
 #include "ast.h"
 #include "lexer/token.h"
 
-typedef struct Parser {
-	const Token *tokens;
-	unsigned int next_token;
-
-	ASTNode *ast;
-
-	bool had_error;
-}Parser;
-
 // Initializes a parser with the specified token array
-void parser_init(Parser *p, const Token *token_array);
+void parser_init(const Token *token_array);
 // Deinitializes the parser
-void parser_deinit(Parser *p);
+void parser_deinit(void);
 // Parse everything
-void parser_parse(Parser *p);
+void parser_parse(void);
+// Returns the AST (call after parser_parse)
+ASTNode *parser_get_ast(void);
+// Returns whether the parser had an error or not
+bool parser_had_error(void);
 
-#endif // UNEBCC_PARSER_H
+
+#endif // UNEBCC_PARSER_PARSER_H

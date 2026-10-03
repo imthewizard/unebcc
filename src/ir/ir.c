@@ -11,13 +11,13 @@
 #include "utils/debug.h"
 #include "utils/stringmap.h"
 
-static void generate_function(IR *ir, ASTNode *fn); // generate ir for function
-static void generate_statement(IRBasicBlock *bb, ASTNode *stmt); // generate ir for statement
-static IROperand generate_expression(IRBasicBlock *bb, ASTNode *expr); // generate ir for expression
+static void generate_function(IR *ir, const ASTNode *fn); // generate ir for function
+static void generate_statement(IRBasicBlock *bb, const ASTNode *stmt); // generate ir for statement
+static IROperand generate_expression(IRBasicBlock *bb, const ASTNode *expr); // generate ir for expression
 
-static IROperand handle_binary_simple(IRBasicBlock *bb, ASTNode *expr);
-static IROperand handle_binary_relational(IRBasicBlock *bb, ASTNode *expr);
-static IROperand handle_binary_short_circuit(IRBasicBlock *bb, ASTNode *expr);
+static IROperand handle_binary_simple(IRBasicBlock *bb, const ASTNode *expr);
+static IROperand handle_binary_relational(IRBasicBlock *bb, const ASTNode *expr);
+static IROperand handle_binary_short_circuit(IRBasicBlock *bb, const ASTNode *expr);
 
 // Hacky
 StringMap *var_to_temp;
@@ -52,13 +52,13 @@ void ir_deinit(IR *ir)
 	string_map_deinit(&ir->variable_to_temp);
 }
 
-void ir_generate(IR *ir, ASTNode *ast)
+void ir_generate(IR *ir, const ASTNode *ast)
 {
 	ASSERT(ast->type == AST_PROGRAM, "invalid ast, type is not AST_PROGRAM");
 	generate_function(ir, ast->node_value.program.function);
 }
 
-static void generate_function(IR *ir, ASTNode *fn)
+static void generate_function(IR *ir, const ASTNode *fn)
 {
 	IRFunction ir_fn;
 	function_init(&ir_fn);
@@ -90,7 +90,7 @@ static void generate_function(IR *ir, ASTNode *fn)
 	array_push(ir->functions, ir_fn);
 }
 
-static void generate_statement(IRBasicBlock *bb, ASTNode *stmt)
+static void generate_statement(IRBasicBlock *bb, const ASTNode *stmt)
 {
 	if (stmt->type == AST_STATEMENT) {
 		switch (stmt->node_value.statement.type) {
@@ -107,7 +107,7 @@ static void generate_statement(IRBasicBlock *bb, ASTNode *stmt)
 	}
 }
 
-static IROperand generate_expression(IRBasicBlock *bb, ASTNode *expr)
+static IROperand generate_expression(IRBasicBlock *bb, const ASTNode *expr)
 {
 	switch (expr->type) {
 		case AST_INT_LITERAL:{
@@ -194,7 +194,7 @@ static IROperand generate_expression(IRBasicBlock *bb, ASTNode *expr)
 	}
 }
 
-static IROperand handle_binary_simple(IRBasicBlock *bb, ASTNode *expr)
+static IROperand handle_binary_simple(IRBasicBlock *bb, const ASTNode *expr)
 {
 	IROperand left = generate_expression(bb, expr->node_value.binary.left);
 	IROperand right = generate_expression(bb, expr->node_value.binary.right);
@@ -221,7 +221,7 @@ static IROperand handle_binary_simple(IRBasicBlock *bb, ASTNode *expr)
 	return IR_OPERAND_CREATE(IR_OPERAND_TEMP, inst.dest_id);
 }
 
-static IROperand handle_binary_relational(IRBasicBlock *bb, ASTNode *expr)
+static IROperand handle_binary_relational(IRBasicBlock *bb, const ASTNode *expr)
 {
 	IROperand left = generate_expression(bb, expr->node_value.binary.left);
 	IROperand right = generate_expression(bb, expr->node_value.binary.right);
@@ -243,7 +243,7 @@ static IROperand handle_binary_relational(IRBasicBlock *bb, ASTNode *expr)
 	return IR_OPERAND_CREATE(IR_OPERAND_TEMP, inst.dest_id);
 }
 
-static IROperand handle_binary_short_circuit(IRBasicBlock *bb, ASTNode *expr)
+static IROperand handle_binary_short_circuit(IRBasicBlock *bb, const ASTNode *expr)
 {
 	ASSERT(expr->node_value.binary.type == AST_BINARY_LOGICAL_AND ||
 			expr->node_value.binary.type == AST_BINARY_LOGICAL_OR,

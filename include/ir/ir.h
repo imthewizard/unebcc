@@ -21,6 +21,6 @@ void ir_init(IR *ir);
 // Frees an IR
 void ir_deinit(IR *ir);
 // Generates the IR for the specified ast
-void ir_generate(IR *ir, ASTNode *ast);
+void ir_generate(IR *ir, const ASTNode *ast);
 
 #endif // UNEBCC_IR_H

@@ -27,11 +27,11 @@ static void assemble(const ArgsContext *ctx, x86_64Program *program);
 // Lexes a buffer
 static void lex(const char *buffer, unsigned int buffer_len, bool print);
 // Parses the lexer's array of tokens and creates an AST
-static Parser parse(bool print);
+static void parse(const Token *tokens, bool print);
 // Runs a semantic analysis on the parser's AST and directly modifies it. Returns true if no errors occured
-static bool semantic(Parser *parser, bool print);
+static bool semantic(ASTNode *ast, bool print);
 // Generates an IR from the AST
-static IR generate_ir(const Parser *parser, bool print);
+static IR generate_ir(const ASTNode *ast, bool print);
 // Generates a x86_64 based IR from the general IR
 static x86_64Program generate_machine_ir(const IR *ir, bool print);
 // Generates assembly code from the machine IR and sends it to a file
@@ -93,21 +93,21 @@ static void compile(const ArgsContext *ctx, File *input, IR *ir, x86_64Program *
 
 	free(file_buffer);
 
-	Parser parser = parse(print_parser);
-	if ((parser.had_error) || (only_parse)) {
+	parse(lexer_get_token_array(), print_parser);
+	if ((parser_had_error()) || (only_parse)) {
 		file_close(input);
 		file_remove(input);
 		lexer_deinit();
-		parser_deinit(&parser);
-		if (parser.had_error)
+		parser_deinit();
+		if (parser_had_error())
 			exit(EXIT_FAILURE);
 		exit(EXIT_SUCCESS);
 	}
-	if (!semantic(&parser, print_semantic)) {
+	if (!semantic(parser_get_ast(), print_semantic)) {
 		file_close(input);
 		file_remove(input);
 		lexer_deinit();
-		parser_deinit(&parser);
+		parser_deinit();
 		semantic_free_allocated();
 		exit(EXIT_FAILURE);
 	}
@@ -115,13 +115,13 @@ static void compile(const ArgsContext *ctx, File *input, IR *ir, x86_64Program *
 		exit(EXIT_SUCCESS);
 	}
 
-	*ir = generate_ir(&parser, print_ir);
+	*ir = generate_ir(parser_get_ast(), print_ir);
 	*program = generate_machine_ir(ir, print_machine_ir);
 
 	file_close(input);
 	file_remove(input);
 	// ir_deinit(&ir);
-	parser_deinit(&parser);
+	parser_deinit();
 	lexer_deinit();
 	semantic_free_allocated();
 
@@ -166,31 +166,29 @@ static void lex(const char *buffer, unsigned int buffer_len, bool print)
 	}
 }
 
-static Parser parse(bool print)
+static void parse(const Token *tokens, bool print)
 {
-	Parser parser;
-	parser_init(&parser, lexer_get_token_array());
-	parser_parse(&parser);
+	parser_init(tokens);
+	parser_parse();
 	if (print) {
-		ast_print(parser.ast, 0);
+		ast_print(parser_get_ast(), 0);
 	}
-	return parser;
 }
 
-static bool semantic(Parser *parser, bool print)
+static bool semantic(ASTNode *ast, bool print)
 {
-	bool ok = semantic_analysis(parser->ast);
+	bool ok = semantic_analysis(ast);
 	if (ok && print) {
-		ast_print(parser->ast, 0);
+		ast_print(ast, 0);
 	}
 	return ok;
 }
 
-static IR generate_ir(const Parser *parser, bool print)
+static IR generate_ir(const ASTNode *ast, bool print)
 {
 	IR ir;
 	ir_init(&ir);
-	ir_generate(&ir, parser->ast);
+	ir_generate(&ir, ast);
 	if (print) {
 		ir_print(&ir);
 	}

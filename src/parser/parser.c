@@ -9,80 +9,106 @@
 #include "utils/debug.h"
 #include "utils/array.h"
 
-static ASTNode *parse_program(Parser *p);
-static ASTNode *parse_function(Parser *p);
-static ASTNode *parse_block_item(Parser *p);
-static ASTNode *parse_declaration(Parser *p);
-static ASTNode *parse_statement(Parser *p);
-static ASTNode *parse_expression(Parser *p, int min_prec);
-static ASTNode *parse_factor(Parser *p);
+typedef struct Parser {
+	const Token *tokens;
+	unsigned int next_token;
+
+	ASTNode *ast;
+
+	bool had_error;
+}Parser;
+Parser *parser = NULL;
+
+static ASTNode *parse_program(void);
+static ASTNode *parse_function(void);
+static ASTNode *parse_block_item(void);
+static ASTNode *parse_declaration(void);
+static ASTNode *parse_statement(void);
+static ASTNode *parse_expression(int min_prec);
+static ASTNode *parse_factor(void);
 
 // Checks if the next token is of the expected type and advances.
 // If it isn't, an error message will be printed.
-static bool expect(Parser *p, TokenType expected_type);
+static bool expect(TokenType expected_type);
 // Returns the most recently consumed token
-static const Token* previous(Parser *p);
+static const Token* previous(void);
 // Returns the next token
-static const Token* peek(Parser *p);
+static const Token* peek(void);
 // Advances the parser
-static void advance(Parser *p);
+static void advance(void);
 // Gets the precedence of a binary operator token
 static int precedence(TokenType token_type);
 // Returns true if the token is a binary operator
 static bool is_binary_operator(TokenType token_type);
 
 
-void parser_init(Parser *p, const Token *token_array)
+void parser_init(const Token *token_array)
 {
+	ASSERT(parser == NULL, "parser was already initialized");
+	parser = malloc(sizeof(Parser));
+
 	ASSERT(token_array != NULL, "token_array must be non-null, use the lexer first");
 
-	p->tokens = token_array;
-	p->next_token = 0;
-	p->ast = NULL;
-	p->had_error = false;
+	parser->tokens = token_array;
+	parser->next_token = 0;
+	parser->ast = NULL;
+	parser->had_error = false;
 }
 
-void parser_deinit(Parser *p)
+void parser_deinit(void)
 {
-	if (p->ast != NULL) {
-		ast_free_node(p->ast);
+	if (parser != NULL) {
+		if (parser->ast != NULL) {
+			ast_free_node(parser->ast);
+		}
+		free(parser);
 	}
 }
 
-void parser_parse(Parser *p)
+void parser_parse(void)
 {
-	ASSERT(p->ast == NULL, "ast is not null, create a new parser");
-	p->ast = parse_program(p);
+	ASSERT(parser->ast == NULL, "ast is not null, create a new parser");
+	parser->ast = parse_program();
 }
 
-static bool expect(Parser *p, TokenType expected_type)
+ASTNode *parser_get_ast(void)
 {
-	TokenType next_type = p->tokens[p->next_token++].type;
+	return parser->ast;
+}
+
+bool parser_had_error(void)
+{
+	return parser->had_error;
+}
+
+static bool expect(TokenType expected_type)
+{
+	TokenType next_type = parser->tokens[parser->next_token++].type;
 	if (next_type == expected_type) {
 		return true;
 	}
 	fprintf(stderr, "Syntax error: ");
 	fprintf(stderr, "expected %s, ", str_token_type(expected_type));
 	fprintf(stderr, "got %s\n", str_token_type(next_type));
-	p->had_error = true;
+	parser->had_error = true;
 	return false;
 }
 
-static const Token* previous(Parser *p)
+static const Token* previous(void)
 {
-	ASSERT(p->next_token > 0, "no previous token");
+	ASSERT(parser->next_token > 0, "no previous token");
 
-	return &p->tokens[p->next_token - 1];
+	return &parser->tokens[parser->next_token - 1];
 }
 
-static const Token* peek(Parser *p)
+static const Token* peek(void)
 {
-	return &p->tokens[p->next_token];
+	return &parser->tokens[parser->next_token];
 }
 
-static void advance(Parser *p)
+static void advance(void)
 {
-	p->next_token++;
+	parser->next_token++;
 }
 
 static int precedence(TokenType token_type)
@@ -148,104 +174,104 @@ static bool is_binary_operator(TokenType token_type)
 	}
 }
 
-static ASTNode *parse_program(Parser *p)
+static ASTNode *parse_program(void)
 {
-	ASSERT(p->ast == NULL, "ast is not null, create a new parser");
+	ASSERT(parser->ast == NULL, "ast is not null, create a new parser");
 
-	ASTNode *function = parse_function(p);
+	ASTNode *function = parse_function();
 	if (function == NULL) return NULL;
 
-	if (expect(p, TOKEN_EOF) == false) return NULL;
+	if (expect(TOKEN_EOF) == false) return NULL;
 
 	return ast_program(function);
 }
 
-static ASTNode *parse_function(Parser *p)
+static ASTNode *parse_function(void)
 {
-	if (expect(p, TOKEN_INT) == false) return NULL;
-	if (expect(p, TOKEN_IDENTIFIER) == false) return NULL;
+	if (expect(TOKEN_INT) == false) return NULL;
+	if (expect(TOKEN_IDENTIFIER) == false) return NULL;
 
-	char *name = previous(p)->literal;
+	char *name = previous()->literal;
 
-	if (expect(p, TOKEN_LPAREN) == false) return NULL;
-	if (expect(p, TOKEN_VOID) == false) return NULL;
-	if (expect(p, TOKEN_RPAREN) == false) return NULL;
+	if (expect(TOKEN_LPAREN) == false) return NULL;
+	if (expect(TOKEN_VOID) == false) return NULL;
+	if (expect(TOKEN_RPAREN) == false) return NULL;
 
-	if (expect(p, TOKEN_LBRACE) == false) return NULL;
+	if (expect(TOKEN_LBRACE) == false) return NULL;
 
 	ASTNode **block_items = array_create(block_items, 1);
 	ASTNode *current_block_item;
-	while (peek(p)->type != TOKEN_RBRACE) {
-		current_block_item = parse_block_item(p);
+	while (peek()->type != TOKEN_RBRACE) {
+		current_block_item = parse_block_item();
 		if (current_block_item == NULL) return NULL;
 
 		array_push(block_items, current_block_item);
 	}
 
-	if (expect(p, TOKEN_RBRACE) == false) return NULL;
+	if (expect(TOKEN_RBRACE) == false) return NULL;
 	return ast_function(name, block_items);
 }
 
-static ASTNode *parse_block_item(Parser *p)
+static ASTNode *parse_block_item(void)
 {
-	if (peek(p)->type == TOKEN_INT) {
-		return parse_declaration(p);
+	if (peek()->type == TOKEN_INT) {
+		return parse_declaration();
 	} else {
-		return parse_statement(p);
+		return parse_statement();
 	}
 }
 
-static ASTNode *parse_declaration(Parser *p)
+static ASTNode *parse_declaration(void)
 {
-	if (expect(p, TOKEN_INT) == false) return NULL;
+	if (expect(TOKEN_INT) == false) return NULL;
 
-	const Token *possible_identifier = peek(p);
-	if (expect(p, TOKEN_IDENTIFIER) == false) return NULL;
+	const Token *possible_identifier = peek();
+	if (expect(TOKEN_IDENTIFIER) == false) return NULL;
 
 	ASTNode *exp = NULL;
-	if (peek(p)->type == TOKEN_EQUAL) {
-		advance(p);
+	if (peek()->type == TOKEN_EQUAL) {
+		advance();
 
-		exp = parse_expression(p, 0);
+		exp = parse_expression(0);
 		if (exp == NULL) return NULL;
 	}
 
-	if (expect(p, TOKEN_SEMICOLON) == false) return NULL;
+	if (expect(TOKEN_SEMICOLON) == false) return NULL;
 
 	return ast_declaration(possible_identifier->literal, exp);
 }
 
-static ASTNode *parse_statement(Parser *p)
+static ASTNode *parse_statement(void)
 {
-	const Token *next = peek(p);
+	const Token *next = peek();
 
 	if (next->type == TOKEN_RETURN) {
-		advance(p);
+		advance();
 
-		ASTNode *exp = parse_expression(p, 0);
+		ASTNode *exp = parse_expression(0);
 		if (exp == NULL) return NULL;
 
-		if (expect(p, TOKEN_SEMICOLON) == false) return NULL;
+		if (expect(TOKEN_SEMICOLON) == false) return NULL;
 
 		return ast_statement(AST_STATEMENT_RETURN, exp);
 	}
 
 	if (next->type == TOKEN_SEMICOLON) {
-		advance(p);
+		advance();
 		return ast_statement(AST_STATEMENT_NULL_EXPRESSION, NULL);
 	}
 
-	ASTNode *exp = parse_expression(p, 0);
+	ASTNode *exp = parse_expression(0);
 
-	if (expect(p, TOKEN_SEMICOLON) == false) return NULL;
+	if (expect(TOKEN_SEMICOLON) == false) return NULL;
 
 	return exp;
 }
 
-static ASTNode *parse_expression(Parser *p, int min_prec)
+static ASTNode *parse_expression(int min_prec)
 {
-	ASTNode *left = parse_factor(p);
-	const Token *next = peek(p);
+	ASTNode *left = parse_factor();
+	const Token *next = peek();
 
 	while (1) {
 		if (!is_binary_operator(next->type)) return left;
@@ -253,14 +279,14 @@ static ASTNode *parse_expression(Parser *p, int min_prec)
 		int prec = precedence(next->type);
 		if (prec < min_prec) return left;
 
-		advance(p);
+		advance();
 
 		if (next->type == TOKEN_EQUAL) {
-			ASTNode *right = parse_expression(p, prec);
+			ASTNode *right = parse_expression( prec);
 			return ast_assignment(left, right);
 		}
 
-		ASTNode *right = parse_expression(p, prec + 1);
+		ASTNode *right = parse_expression(prec + 1);
 		ASTBinaryType bin_type;
 		switch (next->type) {
 			case TOKEN_PLUS: bin_type = AST_BINARY_ADD; break;
@@ -285,52 +311,52 @@ static ASTNode *parse_expression(Parser *p, int min_prec)
 		}
 
 		left = ast_binary(bin_type, left, right);
-		next = peek(p);
+		next = peek();
 	}
 	return left;
 }
 
-static ASTNode *parse_factor(Parser *p)
+static ASTNode *parse_factor(void)
 {
-	const Token *next = peek(p);
+	const Token *next = peek();
 
 	switch(next->type) {
 		case TOKEN_INTEGER_LITERAL:{
-			advance(p);
+			advance();
 			int value = atoi(next->literal);
 			return ast_int_literal(value);
 		}
 		case TOKEN_IDENTIFIER:{
-			advance(p);
+			advance();
 			const char *identifier = next->literal;
 			return ast_variable(identifier);
 		}
 
 		case TOKEN_TILDE:{
-			advance(p);
-			ASTNode *inner_exp = parse_factor(p);
+			advance();
+			ASTNode *inner_exp = parse_factor();
 			return ast_unary(AST_UNARY_BITWISE_NOT, inner_exp);
 		}
 		case TOKEN_MINUS:{
-			advance(p);
-			ASTNode *inner_exp = parse_factor(p);
+			advance();
+			ASTNode *inner_exp = parse_factor();
 			return ast_unary(AST_UNARY_NEGATE, inner_exp);
 		}
 		case TOKEN_EXCLAMATION:{
-			advance(p);
-			ASTNode *inner_exp = parse_factor(p);
+			advance();
+			ASTNode *inner_exp = parse_factor();
 			return ast_unary(AST_UNARY_LOGICAL_NOT, inner_exp);
 		}
 
 		case TOKEN_LPAREN:
-			advance(p);
-			ASTNode *inner_exp = parse_expression(p, 0);
-			if (expect(p, TOKEN_RPAREN) == false) return NULL;
+			advance();
+			ASTNode *inner_exp = parse_expression(0);
+			if (expect(TOKEN_RPAREN) == false) return NULL;
 			return inner_exp;
 
 		default:
 			fprintf(stderr, "Malformed factor\n");
-			p->had_error = true;
+			parser->had_error = true;
 			return NULL;
 	}
 }
