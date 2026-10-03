@@ -60,6 +60,7 @@ bool semantic_analysis(ASTNode *ast_main)
 
 void semantic_free_allocated(void)
 {
+	if (allocated_unique_names == NULL) return;
 	for (int i = 0; i < array_length(allocated_unique_names); i++) {
 		free(allocated_unique_names[i]);
 	}
