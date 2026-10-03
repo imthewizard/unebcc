@@ -27,13 +27,12 @@ static void generic_copy(x86_64Function *fn, const IRInstruction *inst);
 /// Specific generation for ir_label
 static void handle_label(x86_64Function *fn, const IRInstruction *inst);
 
-void x86_64_create_prog(const IR *ir, x86_64Program *prog)
+void x86_64_create_prog(const IRFunction *functions, x86_64Program *prog)
 {
 	ASSERT(prog != NULL, "null program");
-	ASSERT(ir != NULL, "null IR");
 
-	for (int i = 0; i < array_length(ir->functions); i++) {
-		x86_64Function fn = create_fn(&ir->functions[i]);
+	for (int i = 0; i < array_length(functions); i++) {
+		x86_64Function fn = create_fn(&functions[i]);
 		array_push(prog->functions, fn);
 	}
 

@@ -11,7 +11,14 @@
 #include "utils/debug.h"
 #include "utils/stringmap.h"
 
-static void generate_function(IR *ir, const ASTNode *fn); // generate ir for function
+typedef struct IR {
+	IRFunction *functions;
+
+	StringMap variable_to_temp;
+}IR;
+IR *ir = NULL;
+
+static void generate_function(const ASTNode *fn); // generate ir for function
 static void generate_statement(IRBasicBlock *bb, const ASTNode *stmt); // generate ir for statement
 static IROperand generate_expression(IRBasicBlock *bb, const ASTNode *expr); // generate ir for expression
 
@@ -22,7 +29,7 @@ static IROperand handle_binary_short_circuit(IRBasicBlock *bb, const ASTNode *ex
 // Hacky
 StringMap *var_to_temp;
 
-void ir_print(IR *ir)
+void ir_print(void)
 {
 	for (int i = 0; i < array_length(ir->functions); i++) {
 		function_print(&ir->functions[i]);
@@ -30,35 +37,46 @@ void ir_print(IR *ir)
 	printf("\n");
 }
 
-void ir_init(IR *ir)
+void ir_init(void)
 {
+	ASSERT(ir == NULL, "ir was already initialized");
+	ir = malloc(sizeof(IR));
+
 	ir->functions = array_create(ir->functions, 1);
 	ir->variable_to_temp = string_map_init();
 	var_to_temp = &ir->variable_to_temp;
 }
 
-void ir_deinit(IR *ir)
+void ir_deinit(void)
 {
-	if (ir->functions == NULL) return;
-	for (int i = 0; i < array_length(ir->functions); i++) {
-		function_deinit(&ir->functions[i]);
-	}
-	array_free(ir->functions);
+	if (ir != NULL) {
+		if (ir->functions == NULL) return;
+		for (int i = 0; i < array_length(ir->functions); i++) {
+			function_deinit(&ir->functions[i]);
+		}
+		array_free(ir->functions);
 
-	StringMapIterator it = string_map_iterator(&ir->variable_to_temp);
-	while(string_map_next(&it)) {
-		free(it.entry->value); // all allocated ints for ids
+		StringMapIterator it = string_map_iterator(&ir->variable_to_temp);
+		while(string_map_next(&it)) {
+			free(it.entry->value); // all allocated ints for ids
+		}
+		string_map_deinit(&ir->variable_to_temp);
+		free(ir);
 	}
-	string_map_deinit(&ir->variable_to_temp);
 }
 
-void ir_generate(IR *ir, const ASTNode *ast)
+void ir_generate(const ASTNode *ast)
 {
 	ASSERT(ast->type == AST_PROGRAM, "invalid ast, type is not AST_PROGRAM");
-	generate_function(ir, ast->node_value.program.function);
+	generate_function(ast->node_value.program.function);
 }
 
-static void generate_function(IR *ir, const ASTNode *fn)
+IRFunction *ir_get_functions(void)
+{
+	return ir->functions;
+}
+
+static void generate_function(const ASTNode *fn)
 {
 	IRFunction ir_fn;
 	function_init(&ir_fn);

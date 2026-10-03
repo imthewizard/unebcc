@@ -20,7 +20,7 @@
 // Runs the preprocessing stage on the input and returns the preprocessed file
 static File preprocess(const ArgsContext *ctx);
 // Main compile pass: lexer, parser, semantic analysis and irs
-static void compile(const ArgsContext *ctx, File *input, IR *ir, x86_64Program *program);
+static void compile(const ArgsContext *ctx, File *input, x86_64Program *program);
 // Assembles the program
 static void assemble(const ArgsContext *ctx, x86_64Program *program);
 
@@ -31,9 +31,9 @@ static void parse(const Token *tokens, bool print);
 // Runs a semantic analysis on the parser's AST and directly modifies it. Returns true if no errors occured
 static bool semantic(ASTNode *ast, bool print);
 // Generates an IR from the AST
-static IR generate_ir(const ASTNode *ast, bool print);
+static void generate_ir(const ASTNode *ast, bool print);
 // Generates a x86_64 based IR from the general IR
-static x86_64Program generate_machine_ir(const IR *ir, bool print);
+static x86_64Program generate_machine_ir(const IRFunction *fns, bool print);
 // Generates assembly code from the machine IR and sends it to a file
 static File emit_assembly(const char *filename, const x86_64Program *prog, bool print);
 
@@ -41,15 +41,13 @@ void driver_start(const ArgsContext *ctx)
 {
 	File preprocessed = preprocess(ctx);
 
-	IR ir;
 	x86_64Program program;
-	compile(ctx, &preprocessed, &ir, &program);
-	// x86_64Program program = compile(ctx, &preprocessed);
+	compile(ctx, &preprocessed, &program);
 
 	assemble(ctx, &program);
 
 	x86_64_program_deinit(&program);
-	ir_deinit(&ir);
+	ir_deinit();
 }
 
 static File preprocess(const ArgsContext *ctx)
@@ -65,7 +63,7 @@ static File preprocess(const ArgsContext *ctx)
 	return temp;
 }
 
-static void compile(const ArgsContext *ctx, File *input, IR *ir, x86_64Program *program)
+static void compile(const ArgsContext *ctx, File *input, x86_64Program *program)
 {
 	const bool print_lexer      = args_cmp_value(ctx, "print", "lexer");
 	const bool print_parser     = args_cmp_value(ctx, "print", "parser");
@@ -115,19 +113,16 @@ static void compile(const ArgsContext *ctx, File *input, IR *ir, x86_64Program *
 		exit(EXIT_SUCCESS);
 	}
 
-	*ir = generate_ir(parser_get_ast(), print_ir);
-	*program = generate_machine_ir(ir, print_machine_ir);
+	generate_ir(parser_get_ast(), print_ir);
+	*program = generate_machine_ir(ir_get_functions(), print_machine_ir);
 
 	file_close(input);
 	file_remove(input);
-	// ir_deinit(&ir);
 	parser_deinit();
 	lexer_deinit();
 	semantic_free_allocated();
 
 	if (only_codegen) exit(EXIT_SUCCESS);
-
-	// return prog;
 }
 
 static void assemble(const ArgsContext *ctx, x86_64Program *program)
@@ -184,21 +179,19 @@ static bool semantic(ASTNode *ast, bool print)
 	return ok;
 }
 
-static IR generate_ir(const ASTNode *ast, bool print)
+static void generate_ir(const ASTNode *ast, bool print)
 {
-	IR ir;
-	ir_init(&ir);
-	ir_generate(&ir, ast);
+	ir_init();
+	ir_generate(ast);
 	if (print) {
-		ir_print(&ir);
+		ir_print();
 	}
-	return ir;
 }
 
-static x86_64Program generate_machine_ir(const IR *ir, bool print)
+static x86_64Program generate_machine_ir(const IRFunction *fns, bool print)
 {
 	x86_64Program prog = x86_64_program_init();
-	x86_64_create_prog(ir, &prog);
+	x86_64_create_prog(fns, &prog);
 	if (print) {
 		x86_64_program_print(&prog);
 	}
