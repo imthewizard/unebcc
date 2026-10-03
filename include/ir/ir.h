@@ -6,8 +6,12 @@
 #include "ir/function.h"
 #include "parser/ast.h"
 
+#include "utils/stringmap.h"
+
 typedef struct IR {
 	IRFunction *functions;
+
+	StringMap variable_to_temp;
 }IR;
 
 void ir_print(IR *ir);

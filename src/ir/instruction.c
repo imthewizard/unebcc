@@ -3,6 +3,7 @@
 
 #include "ir/instruction.h"
 #include "utils/debug.h"
+#include "utils/stringmap.h"
 
 void instruction_print(const IRInstruction *inst)
 {
@@ -42,7 +43,11 @@ void instruction_print(const IRInstruction *inst)
 
 	if (inst->type == IR_COPY) {
 		// Special case: copy
-		printf("copy tmp%d, %d", inst->src1.value, inst->src2.value);
+		if (inst->src2.type == IR_OPERAND_CONST) {
+			printf("copy tmp%d, %d", inst->src1.value, inst->src2.value);
+		} else {
+			printf("copy tmp%d, tmp%d", inst->src1.value, inst->src2.value);
+		}
 		printf("\n");
 		return;
 	}
@@ -120,6 +125,19 @@ char *instruction_generate_label(const char *name)
 	return buffer;
 }
 
+IROperand ir_temp_from_variable(const char *identifier, StringMap *var_to_id)
+{
+	int *possible_id = string_map_get(var_to_id, identifier);
+	if (possible_id != NULL) {
+		return IR_OPERAND_CREATE(IR_OPERAND_TEMP, *possible_id);
+	} else {
+		int *new_id = malloc(sizeof(int));
+		*new_id = instruction_generate_id();
+		string_map_put(var_to_id, identifier, new_id);
+		return IR_OPERAND_CREATE(IR_OPERAND_TEMP, *new_id);
+	}
+}
+
 IRInstruction ir_instruction_unary(IRInstructionType type, const IROperand *op)
 {
 	if (op->type == IR_OPERAND_TEMP) {
@@ -157,6 +175,20 @@ IRInstruction ir_instruction_binary(IRInstructionType type, const IROperand *lhs
 IRInstruction ir_instruction_label(char *label_name)
 {
 	return IR_INSTRUCTION_LABEL(strdup(label_name));
+}
+
+IRInstruction ir_instruction_copy(const IROperand *lhs, const IROperand *rhs)
+{
+	ASSERT(lhs->type == IR_OPERAND_TEMP, "lhs not temp");
+
+	if (rhs->type == IR_OPERAND_CONST) {
+		return IR_INSTRUCTION_COPY_CONST(lhs->value, rhs->value);
+	}
+	if (rhs->type == IR_OPERAND_TEMP) {
+		return IR_INSTRUCTION_COPY_TEMP(lhs->value, rhs->value);
+	}
+
+	UNIMPLEMENTED("unhandled rhs type");
 }
 
 IRInstruction ir_instruction_branch_always(IRInstructionType type, char *label_name)

@@ -3,6 +3,8 @@
 
 #include <stdlib.h> // NULL
 
+#include "utils/stringmap.h"
+
 typedef unsigned int IRTemporaryID;
 
 typedef enum IROperandType {
@@ -64,12 +66,17 @@ IRTemporaryID instruction_generate_id(void);
 // Returns the label with a unique id, must be freed later
 char *instruction_generate_label(const char *name);
 
+// Returns the temporary operand that corresponds to this variable identifier or creates a new one if it doesn't exist
+IROperand ir_temp_from_variable(const char *identifier, StringMap *var_to_id);
+
 // Creates a new unary instruction
 IRInstruction ir_instruction_unary(IRInstructionType type, const IROperand *op);
 // Creates a new binary instruction
 IRInstruction ir_instruction_binary(IRInstructionType type, const IROperand *lhs, const IROperand *rhs);
 // Creates a new label instruction
 IRInstruction ir_instruction_label(char *label_name);
+// Creates a new copy instruction
+IRInstruction ir_instruction_copy(const IROperand *lhs, const IROperand *rhs);
 // Creates a new branch instruction that does not require a condition. label_name is duplicated and can be freed after calling this
 IRInstruction ir_instruction_branch_always(IRInstructionType type, char *label_name);
 // Creates a new branch instruction that requires a condition. label_name is duplicated and can be freed after calling this
@@ -108,11 +115,17 @@ IRInstruction ir_instruction_branch_condition(IRInstructionType type, const IROp
 	};
 #define IR_INSTRUCTION_RETURN(operand) \
 	_IR_INSTRUCTION_NO_DST((IR_RETURN), (operand).type, (operand).value)
-#define IR_INSTRUCTION_COPY(temp_id, constant) \
+#define IR_INSTRUCTION_COPY_CONST(temp_id, constant) \
 	(IRInstruction){ \
 		.type = IR_COPY, \
 		.src1 = {.type = IR_OPERAND_TEMP, .value = (temp_id)}, \
 		.src2 = {.type = IR_OPERAND_CONST, .value = (constant)}, \
+	};
+#define IR_INSTRUCTION_COPY_TEMP(temp_id, temp_src) \
+	(IRInstruction){ \
+		.type = IR_COPY, \
+		.src1 = {.type = IR_OPERAND_TEMP, .value = (temp_id)}, \
+		.src2 = {.type = IR_OPERAND_TEMP, .value = (temp_src)}, \
 	};
 
 #define IR_INSTRUCTION_UNARY_TEMP(instruction, temp_id) \
